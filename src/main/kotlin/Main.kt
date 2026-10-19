@@ -1,7 +1,5 @@
 package org.example
 
-import kotlinx.coroutines.runBlocking
-
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 fun main() {
@@ -44,8 +42,16 @@ fun main() {
     //val nice2Strings = calculateNice2Strings(strings)
     //println("Nice 2 strings: $nice2Strings")
     //isNice2("rxexwwwwnu")
-    
-    val instructions = readTextFromResource("ex6_instructions")
-    val lightsOnCount = calculateLightsOn(instructions)
-    println("Lights on count: $lightsOnCount")
+
+    //val instructions = readTextFromResource("ex6_instructions")
+    //val lightsOnCount = calculateLightsOn(instructions)
+    //println("Lights on count: $lightsOnCount")
+
+    //val instructions = readTextFromResource("ex6_instructions")
+    //val lightsTotalBrightness = calculateTotalBrightness(instructions)
+    //println("Lights total brightness: $lightsTotalBrightness")
+
+    val instructions = readTextFromResource("ex7_instructions")
+    val wireSignal = calculateSignalOnWire(instructions, "a")
+    println("Signal on wire a is: $wireSignal")
 }

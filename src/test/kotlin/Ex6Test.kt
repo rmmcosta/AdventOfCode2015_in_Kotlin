@@ -1,8 +1,7 @@
 import org.example.calculateLightsOn
-import org.junit.jupiter.api.Assertions.*
+import org.example.calculateTotalBrightness
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
 
 class Ex6Test {
     @Test
@@ -27,5 +26,24 @@ class Ex6Test {
     fun `given all lights are on, turn off 499,499 through 500,500 would turn off the middle four lights resulting in 999_996 lights on`() {
         val expected = 1000 * 1000 - 4
         assertEquals(expected, calculateLightsOn("turn on 0,0 through 999,999\nturn off 499,499 through 500,500"))
+    }
+
+    /*
+    turn on 0,0 through 0,0 would increase the total brightness by 1.
+    toggle 0,0 through 999,999 would increase the total brightness by 2000000.
+     */
+    @Test
+    fun `turn on 0,0 through 0,0 would increase the total brightness by 1`() {
+        assertEquals(1, calculateTotalBrightness("turn on 0,0 through 0,0"))
+    }
+
+    @Test
+    fun `turn on 0,0 through 999,999 would increase the total brightness by 1_000_000`() {
+        assertEquals(1_000_000, calculateTotalBrightness("turn on 0,0 through 999,999"))
+    }
+
+    @Test
+    fun `toggle 0,0 through 999,999 would increase the total brightness by 2_000_000`() {
+        assertEquals(2_000_000, calculateTotalBrightness("toggle 0,0 through 999,999"))
     }
 }

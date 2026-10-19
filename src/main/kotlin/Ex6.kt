@@ -84,3 +84,45 @@ private fun extractPosition(string: String): Pair<Int, Int> {
     val (x, y) = string.split(",")
     return x.toInt() to y.toInt()
 }
+
+/*
+The light grid you bought actually has individual brightness controls; each light can have a brightness of zero or more. The lights all start at zero.
+
+The phrase turn on actually means that you should increase the brightness of those lights by 1.
+
+The phrase turn off actually means that you should decrease the brightness of those lights by 1, to a minimum of zero.
+
+The phrase toggle actually means that you should increase the brightness of those lights by 2.
+
+What is the total brightness of all lights combined after following Santa's instructions?
+
+For example:
+
+turn on 0,0 through 0,0 would increase the total brightness by 1.
+toggle 0,0 through 999,999 would increase the total brightness by 2000000.
+ */
+fun calculateTotalBrightness(instructions: String): Int {
+    val lights: Array<Array<Int>> = Array(1000) { Array(1000) { 0 } }
+    for (instruction in instructions.split("\n")) {
+        val (command, start, end) = parseInstruction(instruction)
+        executeBrightnessCommand(command, start, end, lights)
+    }
+    return lights.sumOf { line -> line.sumOf { it } }
+}
+
+private fun executeBrightnessCommand(
+    command: Command,
+    startPosition: Pair<Int, Int>,
+    endPosition: Pair<Int, Int>,
+    lights: Array<Array<Int>>
+) {
+    for (x in startPosition.first..endPosition.first) {
+        for (y in startPosition.second..endPosition.second) {
+            lights[x][y] = when (command) {
+                Command.TOGGLE -> lights[x][y] + 2
+                Command.TURN_ON -> lights[x][y] + 1
+                Command.TURN_OFF -> if (lights[x][y] > 0) lights[x][y] - 1 else 0
+            }
+        }
+    }
+}
