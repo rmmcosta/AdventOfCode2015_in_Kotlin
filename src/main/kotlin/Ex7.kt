@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import kotlin.collections.get
 
@@ -51,15 +52,34 @@ In little Bobby's kit's instructions booklet (provided as your puzzle input), wh
 fun calculateSignalOnWire(instructions: String, wire: String): Int {
     val wiresMap = getWiresMap(instructions)
     //keep looping while there are wires whose values are calculations
+    var previousWiresAlreadyCalculatedCount = 0
+    var iterations = 0
     while (wiresMap.values.any { it.toIntOrNull() == null }) {
         val wiresAlreadyCalculated = wiresMap.filter { it.value.toIntOrNull() != null }
+
+        if (wiresAlreadyCalculated.size == previousWiresAlreadyCalculatedCount)
+            iterations++
+        else iterations = 0
+
+        if (wiresAlreadyCalculated.size == previousWiresAlreadyCalculatedCount && iterations == 100)
+            throw RuntimeException("Got stuck $wiresAlreadyCalculated")
+       
+        previousWiresAlreadyCalculatedCount = wiresAlreadyCalculated.size
+        
         println("wires already calculated: ${wiresAlreadyCalculated.size}")
+        
         //now let's iterate the wires map with uncalculated values and replace the wires by it's value
-        wiresAlreadyCalculated.forEach { (wire, value) ->
-            val wiresDependingOnWire = wiresMap.filter { (_, value) -> value.contains(wire) }
-            wiresDependingOnWire.keys.forEach { dependentWire ->
-                val currentCalculation = wiresMap[dependentWire]
-                wiresMap[dependentWire] = calculateNewWireValue(currentCalculation!!, wire, value)
+        runBlocking {
+            coroutineScope {
+                wiresAlreadyCalculated.forEach { (wire, value) ->
+                    async {
+                        val wiresDependingOnWire = wiresMap.filter { (_, value) -> value.contains(wire) }
+                        wiresDependingOnWire.keys.forEach { dependentWire ->
+                            val currentCalculation = wiresMap[dependentWire]
+                            wiresMap[dependentWire] = calculateNewWireValue(currentCalculation!!, wire, value)
+                        }
+                    }
+                }
             }
         }
     }
@@ -92,7 +112,7 @@ private fun calculateNewWireValue(
             updatedNotCalculation(calculation, replaceableWire, replaceableValue)
         }
 
-        else -> calculation
+        else -> replaceableValue
     }
 
 private fun updatedAndCalculation(
@@ -193,7 +213,13 @@ enum class Operation {
     NOT
 }
 
-private fun getWiresMap(instructions: String): MutableMap<String, String> = instructions.lines().associate { line ->
-    val lineParts = line.split("->")
-    lineParts[1].trim() to lineParts[0].trim()
-}.toMutableMap()
+private fun getWiresMap(instructions: String): ConcurrentMap<String, String> {
+    val concurrentMap = ConcurrentHashMap<String, String>()
+    instructions.lines().forEach { line ->
+        if(line.contains("lx"))
+            println("line with lx: $line")
+        val lineParts = line.split("->")
+        concurrentMap[lineParts[1].trim()] = lineParts[0].trim()
+    }
+    return concurrentMap
+} 
