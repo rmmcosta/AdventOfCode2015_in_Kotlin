@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentMap
 import kotlin.collections.get
 
 /*
@@ -54,52 +55,59 @@ fun calculateSignalOnWire(instructions: String, wire: String): Int {
         val wiresAlreadyCalculated = wiresMap.filter { it.value.toIntOrNull() != null }
         println("wires already calculated: ${wiresAlreadyCalculated.size}")
         //now let's iterate the wires map with uncalculated values and replace the wires by it's value
-        val uncalculatedWires = wiresMap.filter { it.value.toIntOrNull() == null }
-        println("uncalculated wires: ${uncalculatedWires.size}")
-        uncalculatedWires.keys.forEach { wire ->
-            wiresMap[wire] = calculateNewWireValue(wiresMap[wire]!!, wiresAlreadyCalculated)
+        wiresAlreadyCalculated.forEach { (wire, value) ->
+            val wiresDependingOnWire = wiresMap.filter { (_, value) -> value.contains(wire) }
+            wiresDependingOnWire.keys.forEach { dependentWire ->
+                val currentCalculation = wiresMap[dependentWire]
+                wiresMap[dependentWire] = calculateNewWireValue(currentCalculation!!, wire, value)
+            }
         }
     }
     return wiresMap[wire]?.toInt() ?: 0
 }
 
-private fun calculateNewWireValue(calculation: String, wiresAlreadyCalculated: Map<String, String>): String = when {
-    calculation.contains(Operation.AND.name) -> {
-        updatedAndCalculation(calculation, wiresAlreadyCalculated)
-    }
+private fun calculateNewWireValue(
+    calculation: String,
+    replaceableWire: String,
+    replaceableValue: String
+): String =
+    when {
+        calculation.contains(Operation.AND.name) -> {
+            updatedAndCalculation(calculation, replaceableWire, replaceableValue)
+        }
 
-    calculation.contains(Operation.OR.name) -> {
-        updatedOrCalculation(calculation, wiresAlreadyCalculated)
-    }
+        calculation.contains(Operation.OR.name) -> {
+            updatedOrCalculation(calculation, replaceableWire, replaceableValue)
+        }
 
-    calculation.contains(Operation.LSHIFT.name) -> {
-        updatedLShiftCalculation(calculation, wiresAlreadyCalculated)
-    }
+        calculation.contains(Operation.LSHIFT.name) -> {
+            updatedLShiftCalculation(calculation, replaceableWire, replaceableValue)
+        }
 
-    calculation.contains(Operation.RSHIFT.name) -> {
-        updatedRShiftCalculation(calculation, wiresAlreadyCalculated)
-    }
+        calculation.contains(Operation.RSHIFT.name) -> {
+            updatedRShiftCalculation(calculation, replaceableWire, replaceableValue)
+        }
 
-    calculation.contains(Operation.NOT.name) -> {
-        updatedNotCalculation(calculation, wiresAlreadyCalculated)
-    }
+        calculation.contains(Operation.NOT.name) -> {
+            updatedNotCalculation(calculation, replaceableWire, replaceableValue)
+        }
 
-    else -> calculation
-}
+        else -> calculation
+    }
 
 private fun updatedAndCalculation(
     calculation: String,
-    wiresAlreadyCalculated: Map<String, String>
+    replaceableWire: String,
+    replaceableValue: String
 ): String {
     val parts = calculation.split(Operation.AND.name)
     var operand1: String? = parts[0].trim()
     var operand2: String? = parts[1].trim()
-    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
-    if (operand1 in wiresAlreadyCalculatedKeys) {
-        operand1 = wiresAlreadyCalculated[operand1]
+    if (operand1 == replaceableWire) {
+        operand1 = replaceableValue
     }
-    if (operand2 in wiresAlreadyCalculatedKeys) {
-        operand2 = wiresAlreadyCalculated[operand2]
+    if (operand2 == replaceableWire) {
+        operand2 = replaceableValue
     }
     if (operand1?.toIntOrNull() != null && operand2?.toIntOrNull() != null) {
         return "${operand1.toInt() and operand2.toInt()}"
@@ -109,17 +117,17 @@ private fun updatedAndCalculation(
 
 private fun updatedOrCalculation(
     calculation: String,
-    wiresAlreadyCalculated: Map<String, String>
+    replaceableWire: String,
+    replaceableValue: String
 ): String {
     val parts = calculation.split(Operation.OR.name)
     var operand1: String? = parts[0].trim()
     var operand2: String? = parts[1].trim()
-    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
-    if (operand1 in wiresAlreadyCalculatedKeys) {
-        operand1 = wiresAlreadyCalculated[operand1]
+    if (operand1 == replaceableWire) {
+        operand1 = replaceableValue
     }
-    if (operand2 in wiresAlreadyCalculatedKeys) {
-        operand2 = wiresAlreadyCalculated[operand2]
+    if (operand2 == replaceableWire) {
+        operand2 = replaceableValue
     }
     if (operand1?.toIntOrNull() != null && operand2?.toIntOrNull() != null) {
         return "${operand1.toInt() or operand2.toInt()}"
@@ -129,14 +137,14 @@ private fun updatedOrCalculation(
 
 private fun updatedLShiftCalculation(
     calculation: String,
-    wiresAlreadyCalculated: Map<String, String>
+    replaceableWire: String,
+    replaceableValue: String
 ): String {
     val parts = calculation.split(Operation.LSHIFT.name)
     var operand1: String? = parts[0].trim()
     val operand2: String = parts[1].trim()
-    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
-    if (operand1 in wiresAlreadyCalculatedKeys) {
-        operand1 = wiresAlreadyCalculated[operand1]
+    if (operand1 == replaceableWire) {
+        operand1 = replaceableValue
     }
     if (operand1?.toIntOrNull() != null && operand2.toIntOrNull() != null) {
         return "${operand1.toInt() shl operand2.toInt()}"
@@ -146,14 +154,14 @@ private fun updatedLShiftCalculation(
 
 private fun updatedRShiftCalculation(
     calculation: String,
-    wiresAlreadyCalculated: Map<String, String>
+    replaceableWire: String,
+    replaceableValue: String
 ): String {
     val parts = calculation.split(Operation.RSHIFT.name)
     var operand1: String? = parts[0].trim()
     val operand2: String = parts[1].trim()
-    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
-    if (operand1 in wiresAlreadyCalculatedKeys) {
-        operand1 = wiresAlreadyCalculated[operand1]
+    if (operand1 == replaceableWire) {
+        operand1 = replaceableValue
     }
     if (operand1?.toIntOrNull() != null && operand2.toIntOrNull() != null) {
         return "${operand1.toInt() shr operand2.toInt()}"
@@ -163,13 +171,13 @@ private fun updatedRShiftCalculation(
 
 private fun updatedNotCalculation(
     calculation: String,
-    wiresAlreadyCalculated: Map<String, String>
+    replaceableWire: String,
+    replaceableValue: String
 ): String {
     val parts = calculation.split(" ")
     var operand2: String? = parts[1].trim()
-    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
-    if (operand2 in wiresAlreadyCalculatedKeys) {
-        operand2 = wiresAlreadyCalculated[operand2]
+    if (operand2 == replaceableWire) {
+        operand2 = replaceableValue
     }
     if (operand2?.toIntOrNull() != null) {
         return "${operand2.toUShort().inv().toInt()}"
