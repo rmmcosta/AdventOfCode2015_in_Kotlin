@@ -49,67 +49,133 @@ In little Bobby's kit's instructions booklet (provided as your puzzle input), wh
  */
 fun calculateSignalOnWire(instructions: String, wire: String): Int {
     val wiresMap = getWiresMap(instructions)
-    return runBlocking {
-        calculateWireValue(wiresMap, wire)
+    //keep looping while there are wires whose values are calculations
+    while (wiresMap.values.any { it.toIntOrNull() == null }) {
+        val wiresAlreadyCalculated = wiresMap.filter { it.value.toIntOrNull() != null }
+        println("wires already calculated: ${wiresAlreadyCalculated.size}")
+        //now let's iterate the wires map with uncalculated values and replace the wires by it's value
+        val uncalculatedWires = wiresMap.filter { it.value.toIntOrNull() == null }
+        println("uncalculated wires: ${uncalculatedWires.size}")
+        uncalculatedWires.keys.forEach { wire ->
+            wiresMap[wire] = calculateNewWireValue(wiresMap[wire]!!, wiresAlreadyCalculated)
+        }
     }
+    return wiresMap[wire]?.toInt() ?: 0
 }
 
-private suspend fun calculateWireValue(wiresMap: Map<String, String>, wire: String): Int {
-    if (wire.toIntOrNull() != null)
-        return wire.toInt()
-
-    val wireValue = wiresMap[wire] ?: throw IllegalArgumentException("Wire value '$wire' not present in wire map")
-
-    return when {
-        wireValue.contains(Operation.AND.name) -> {
-            val calculationParts = wireValue.split(Operation.AND.name)
-            coroutineScope {
-                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) and calculateWireValueAsync(
-                    wiresMap,
-                    calculationParts[1].trim()
-                )
-            }
-        }
-
-        wireValue.contains(Operation.OR.name) -> {
-            val calculationParts = wireValue.split(Operation.OR.name)
-            coroutineScope {
-                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) or calculateWireValueAsync(
-                    wiresMap,
-                    calculationParts[1].trim()
-                )
-            }
-        }
-
-        wireValue.contains(Operation.LSHIFT.name) -> {
-            val calculationParts = wireValue.split(Operation.LSHIFT.name)
-            coroutineScope {
-                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) shl calculationParts[1].trim().toInt()
-            }
-        }
-
-        wireValue.contains(Operation.RSHIFT.name) -> {
-            val calculationParts = wireValue.split(Operation.RSHIFT.name)
-            coroutineScope {
-                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) shr calculationParts[1].trim().toInt()
-            }
-        }
-
-        wireValue.contains(Operation.NOT.name) -> {
-            val calculationParts = wireValue.split(" ")
-            coroutineScope {
-                calculateWireValueAsync(wiresMap, calculationParts[1].trim()).toUShort().inv().toInt()
-            }
-        }
-
-        else -> coroutineScope { calculateWireValueAsync(wiresMap, wireValue) }
+private fun calculateNewWireValue(calculation: String, wiresAlreadyCalculated: Map<String, String>): String = when {
+    calculation.contains(Operation.AND.name) -> {
+        updatedAndCalculation(calculation, wiresAlreadyCalculated)
     }
+
+    calculation.contains(Operation.OR.name) -> {
+        updatedOrCalculation(calculation, wiresAlreadyCalculated)
+    }
+
+    calculation.contains(Operation.LSHIFT.name) -> {
+        updatedLShiftCalculation(calculation, wiresAlreadyCalculated)
+    }
+
+    calculation.contains(Operation.RSHIFT.name) -> {
+        updatedRShiftCalculation(calculation, wiresAlreadyCalculated)
+    }
+
+    calculation.contains(Operation.NOT.name) -> {
+        updatedNotCalculation(calculation, wiresAlreadyCalculated)
+    }
+
+    else -> calculation
 }
 
-private suspend fun CoroutineScope.calculateWireValueAsync(
-    wiresMap: Map<String, String>,
-    wire: String
-): Int = async { calculateWireValue(wiresMap, wire) }.await()
+private fun updatedAndCalculation(
+    calculation: String,
+    wiresAlreadyCalculated: Map<String, String>
+): String {
+    val parts = calculation.split(Operation.AND.name)
+    var operand1: String? = parts[0].trim()
+    var operand2: String? = parts[1].trim()
+    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
+    if (operand1 in wiresAlreadyCalculatedKeys) {
+        operand1 = wiresAlreadyCalculated[operand1]
+    }
+    if (operand2 in wiresAlreadyCalculatedKeys) {
+        operand2 = wiresAlreadyCalculated[operand2]
+    }
+    if (operand1?.toIntOrNull() != null && operand2?.toIntOrNull() != null) {
+        return "${operand1.toInt() and operand2.toInt()}"
+    }
+    return "$operand1 AND $operand2"
+}
+
+private fun updatedOrCalculation(
+    calculation: String,
+    wiresAlreadyCalculated: Map<String, String>
+): String {
+    val parts = calculation.split(Operation.OR.name)
+    var operand1: String? = parts[0].trim()
+    var operand2: String? = parts[1].trim()
+    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
+    if (operand1 in wiresAlreadyCalculatedKeys) {
+        operand1 = wiresAlreadyCalculated[operand1]
+    }
+    if (operand2 in wiresAlreadyCalculatedKeys) {
+        operand2 = wiresAlreadyCalculated[operand2]
+    }
+    if (operand1?.toIntOrNull() != null && operand2?.toIntOrNull() != null) {
+        return "${operand1.toInt() or operand2.toInt()}"
+    }
+    return "$operand1 OR $operand2"
+}
+
+private fun updatedLShiftCalculation(
+    calculation: String,
+    wiresAlreadyCalculated: Map<String, String>
+): String {
+    val parts = calculation.split(Operation.LSHIFT.name)
+    var operand1: String? = parts[0].trim()
+    val operand2: String = parts[1].trim()
+    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
+    if (operand1 in wiresAlreadyCalculatedKeys) {
+        operand1 = wiresAlreadyCalculated[operand1]
+    }
+    if (operand1?.toIntOrNull() != null && operand2.toIntOrNull() != null) {
+        return "${operand1.toInt() shl operand2.toInt()}"
+    }
+    return "$operand1 LSHIFT $operand2"
+}
+
+private fun updatedRShiftCalculation(
+    calculation: String,
+    wiresAlreadyCalculated: Map<String, String>
+): String {
+    val parts = calculation.split(Operation.RSHIFT.name)
+    var operand1: String? = parts[0].trim()
+    val operand2: String = parts[1].trim()
+    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
+    if (operand1 in wiresAlreadyCalculatedKeys) {
+        operand1 = wiresAlreadyCalculated[operand1]
+    }
+    if (operand1?.toIntOrNull() != null && operand2.toIntOrNull() != null) {
+        return "${operand1.toInt() shr operand2.toInt()}"
+    }
+    return "$operand1 RSHIFT $operand2"
+}
+
+private fun updatedNotCalculation(
+    calculation: String,
+    wiresAlreadyCalculated: Map<String, String>
+): String {
+    val parts = calculation.split(" ")
+    var operand2: String? = parts[1].trim()
+    val wiresAlreadyCalculatedKeys = wiresAlreadyCalculated.keys
+    if (operand2 in wiresAlreadyCalculatedKeys) {
+        operand2 = wiresAlreadyCalculated[operand2]
+    }
+    if (operand2?.toIntOrNull() != null) {
+        return "${operand2.toUShort().inv().toInt()}"
+    }
+    return "NOT $operand2"
+}
 
 enum class Operation {
     AND,
@@ -119,7 +185,7 @@ enum class Operation {
     NOT
 }
 
-private fun getWiresMap(instructions: String): Map<String, String> = instructions.lines().associate { line ->
+private fun getWiresMap(instructions: String): MutableMap<String, String> = instructions.lines().associate { line ->
     val lineParts = line.split("->")
     lineParts[1].trim() to lineParts[0].trim()
-}
+}.toMutableMap()
