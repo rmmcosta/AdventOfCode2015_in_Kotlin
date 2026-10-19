@@ -1,5 +1,11 @@
 package org.example
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
+import kotlin.collections.get
+
 /*
 Each wire has an identifier (some lowercase letters) and can carry a 16-bit signal (a number from 0 to 65535). 
 A signal is provided to each wire by a gate, another wire, or some specific value. 
@@ -43,10 +49,12 @@ In little Bobby's kit's instructions booklet (provided as your puzzle input), wh
  */
 fun calculateSignalOnWire(instructions: String, wire: String): Int {
     val wiresMap = getWiresMap(instructions)
-    return calculateWireValue(wiresMap, wire)
+    return runBlocking {
+        calculateWireValue(wiresMap, wire)
+    }
 }
 
-private fun calculateWireValue(wiresMap: Map<String, String>, wire: String): Int {
+private suspend fun calculateWireValue(wiresMap: Map<String, String>, wire: String): Int {
     if (wire.toIntOrNull() != null)
         return wire.toInt()
 
@@ -55,38 +63,53 @@ private fun calculateWireValue(wiresMap: Map<String, String>, wire: String): Int
     return when {
         wireValue.contains(Operation.AND.name) -> {
             val calculationParts = wireValue.split(Operation.AND.name)
-            calculateWireValue(wiresMap, calculationParts[0].trim()) and calculateWireValue(
-                wiresMap,
-                calculationParts[1].trim()
-            )
+            coroutineScope {
+                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) and calculateWireValueAsync(
+                    wiresMap,
+                    calculationParts[1].trim()
+                )
+            }
         }
 
         wireValue.contains(Operation.OR.name) -> {
             val calculationParts = wireValue.split(Operation.OR.name)
-            calculateWireValue(wiresMap, calculationParts[0].trim()) or calculateWireValue(
-                wiresMap,
-                calculationParts[1].trim()
-            )
+            coroutineScope {
+                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) or calculateWireValueAsync(
+                    wiresMap,
+                    calculationParts[1].trim()
+                )
+            }
         }
 
         wireValue.contains(Operation.LSHIFT.name) -> {
             val calculationParts = wireValue.split(Operation.LSHIFT.name)
-            calculateWireValue(wiresMap, calculationParts[0].trim()) shl calculationParts[1].trim().toInt()
+            coroutineScope {
+                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) shl calculationParts[1].trim().toInt()
+            }
         }
 
         wireValue.contains(Operation.RSHIFT.name) -> {
             val calculationParts = wireValue.split(Operation.RSHIFT.name)
-            calculateWireValue(wiresMap, calculationParts[0].trim()) shr calculationParts[1].trim().toInt()
+            coroutineScope {
+                calculateWireValueAsync(wiresMap, calculationParts[0].trim()) shr calculationParts[1].trim().toInt()
+            }
         }
 
         wireValue.contains(Operation.NOT.name) -> {
             val calculationParts = wireValue.split(" ")
-            calculateWireValue(wiresMap, calculationParts[1].trim()).toUShort().inv().toInt()
+            coroutineScope {
+                calculateWireValueAsync(wiresMap, calculationParts[1].trim()).toUShort().inv().toInt()
+            }
         }
 
-        else -> calculateWireValue(wiresMap, wireValue)
+        else -> coroutineScope { calculateWireValueAsync(wiresMap, wireValue) }
     }
 }
+
+private suspend fun CoroutineScope.calculateWireValueAsync(
+    wiresMap: Map<String, String>,
+    wire: String
+): Int = async { calculateWireValue(wiresMap, wire) }.await()
 
 enum class Operation {
     AND,
