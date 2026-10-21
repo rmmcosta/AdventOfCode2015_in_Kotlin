@@ -1,0 +1,20 @@
+
+2. The Step-by-Step Process to List Them
+
+To manually or conceptually build this list without missing any, you use a method called lexicographical ordering (alphabetical tracking) or a tree structure:
+• Step 1: Pick the first item for the first position.
+	• Let's pick A.
+• Step 2: Move to the next position and choose from the remaining items.
+	• If A is first, your remaining choices for the second spot are B or C.
+• Step 3: Fill the final position with whatever is left over.
+	• If you chose B second, only C is left (A -> B -> C).
+	• If you chose C second, only B is left (A -> C -> B).
+• Step 4: Repeat the process by changing your very first choice.
+	• Start with B first, which gives you: B -> A -> C and B -> C -> A.
+	• Start with C first, which gives you: C -> A -> B and C -> B -> A.
+
+Where is this defined?
+
+• Combinatorics (Mathematics): This is the branch of math that studies counting, arranging, and combining things. It formally defines this as "Permutations of a set without repetition."
+• Probability: In probability, this is used to determine the size of a sample space (the total number of possible outcomes) when the order of events matters.
+If you want to know how the number of possibilities scales as you add more points, or if you want to look at a specific number of points, let me know!

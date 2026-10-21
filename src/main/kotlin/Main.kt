@@ -51,7 +51,23 @@ fun main() {
     //val lightsTotalBrightness = calculateTotalBrightness(instructions)
     //println("Lights total brightness: $lightsTotalBrightness")
 
-    val instructions = readTextFromResource("ex7_instructions")
-    val wireSignal = calculateSignalOnWire(instructions, "a")
-    println("Signal on wire a is: $wireSignal")
+    //val instructions = readTextFromResource("ex7_instructions")
+    //val wireSignal = calculateSignalOnWire(instructions, "a")
+    //println("Signal on wire a is: $wireSignal")
+
+    //val instructions = readTextFromResource("ex7_instructions")
+    //val wireSignal = calculateSignalOnWirePart2(instructions, "a")
+    //println("Signal on wire a is: $wireSignal")
+
+    //val santasList = readTextFromResource("ex8_santas_list")
+    //val santasListSpace = calculateSpace(santasList)
+    //println("Santa's need $santasListSpace for it's list")
+
+    //val santasList = readTextFromResource("ex8_santas_list")
+    //val santasListSpace = calculateEncodedSpace(santasList)
+    //println("Santa's need $santasListSpace for it's encoded list")
+
+    val distances = readTextFromResource("ex9_distances")
+    Ex9(distances).calculateShortestAndLongestRoute()
+
 }

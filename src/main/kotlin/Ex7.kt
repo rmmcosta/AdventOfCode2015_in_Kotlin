@@ -49,8 +49,24 @@ x: 123
 y: 456
 In little Bobby's kit's instructions booklet (provided as your puzzle input), what signal is ultimately provided to wire a?
  */
+
 fun calculateSignalOnWire(instructions: String, wire: String): Int {
     val wiresMap = getWiresMap(instructions)
+    return calculateSignalOnWireForWiresMap(wire, wiresMap)
+}
+
+fun calculateSignalOnWirePart2(instructions: String, wire: String): Int {
+    val wiresMap = getWiresMap(instructions)
+    /*
+       --- Part Two ---
+        Now, take the signal you got on wire a, override wire b to that signal, and reset the other wires (including wire a) 
+        signal for wire a is 956 in part 1
+     */
+    wiresMap["b"] = "956"
+    return calculateSignalOnWireForWiresMap(wire, wiresMap)
+}
+
+private fun calculateSignalOnWireForWiresMap(wire: String, wiresMap: ConcurrentMap<String, String>): Int {
     //keep looping while there are wires whose values are calculations
     var previousWiresAlreadyCalculatedCount = 0
     var iterations = 0
@@ -63,19 +79,24 @@ fun calculateSignalOnWire(instructions: String, wire: String): Int {
 
         if (wiresAlreadyCalculated.size == previousWiresAlreadyCalculatedCount && iterations == 100)
             throw RuntimeException("Got stuck $wiresAlreadyCalculated")
-       
+
         previousWiresAlreadyCalculatedCount = wiresAlreadyCalculated.size
-        
+
         println("wires already calculated: ${wiresAlreadyCalculated.size}")
-        
+
         //now let's iterate the wires map with uncalculated values and replace the wires by it's value
         runBlocking {
             coroutineScope {
                 wiresAlreadyCalculated.forEach { (wire, value) ->
                     async {
-                        val wiresDependingOnWire = wiresMap.filter { (_, value) -> value.contains(wire) }
+                        val wiresDependingOnWire = wiresMap.filter { (_, value) ->
+                            val parts = value.split(" ")
+                            parts.any { it == wire }
+                        }
                         wiresDependingOnWire.keys.forEach { dependentWire ->
                             val currentCalculation = wiresMap[dependentWire]
+                            if (wire == "a" || wire == "lx")
+                                println("wire of interest")
                             wiresMap[dependentWire] = calculateNewWireValue(currentCalculation!!, wire, value)
                         }
                     }
@@ -216,7 +237,7 @@ enum class Operation {
 private fun getWiresMap(instructions: String): ConcurrentMap<String, String> {
     val concurrentMap = ConcurrentHashMap<String, String>()
     instructions.lines().forEach { line ->
-        if(line.contains("lx"))
+        if (line.contains("lx"))
             println("line with lx: $line")
         val lineParts = line.split("->")
         concurrentMap[lineParts[1].trim()] = lineParts[0].trim()
