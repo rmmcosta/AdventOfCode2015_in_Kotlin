@@ -1,8 +1,5 @@
 package org.example
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-
 /*
 --- Day 12: JSAbacusFramework.io ---
 Santa's Accounting-Elves need help balancing the books after a recent order. 
@@ -30,4 +27,10 @@ fun ex12SumAllNumbers(document: String): Int {
     val sum = numbers.sum()
     println("Sum: $sum")
     return sum
+}
+
+fun ex12SumAllNonRedNumbers(document: String): Int {
+    val redObjectsRegex = """\{[^}]*red[^{]*}""".toRegex()
+    val documentWithoutRed = document.replace(redObjectsRegex, "")
+    return ex12SumAllNumbers(documentWithoutRed)
 }
