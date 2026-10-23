@@ -67,7 +67,12 @@ fun main() {
     //val santasListSpace = calculateEncodedSpace(santasList)
     //println("Santa's need $santasListSpace for it's encoded list")
 
-    val distances = readTextFromResource("ex9_distances")
-    Ex9(distances).calculateShortestAndLongestRoute()
+    //val distances = readTextFromResource("ex9_distances")
+    //Ex9(distances).calculateShortestAndLongestRoute()
 
+    //ex10CalculateLengthLookAndSayNumberOfTimes("3113322113", 40)
+    //4666278
+    //ex10CalculateLengthLookAndSayNumberOfTimes("3113322113", 50)
+    
+    ex11GenerateNewPassword("cqjxjnds")
 }
