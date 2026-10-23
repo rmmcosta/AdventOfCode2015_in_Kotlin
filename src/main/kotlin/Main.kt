@@ -73,6 +73,7 @@ fun main() {
     //ex10CalculateLengthLookAndSayNumberOfTimes("3113322113", 40)
     //4666278
     //ex10CalculateLengthLookAndSayNumberOfTimes("3113322113", 50)
-    
-    ex11GenerateNewPassword("cqjxjnds")
+
+    //ex11GenerateNewPassword("cqjxjnds")
+    ex11GenerateNewPassword(ex11GenerateNewPassword("cqjxjnds"))
 }
