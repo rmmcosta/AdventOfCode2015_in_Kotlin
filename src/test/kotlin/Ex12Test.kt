@@ -25,10 +25,7 @@ class Ex12Test {
     @ParameterizedTest(name = "{0} has a sum of {1}")
     @CsvSource(
         value = [
-            "[1,2,3]; 6",
-            "[1,{\"c\":\"red\",\"b\":2},3]; 4",
-            "{\"d\":\"red\",\"e\":[1,2,3,4],\"f\":5}; 0",
-            "[1,\"red\",5]; 6"
+            "[{\"a\":{\"e\":{\"c\":{\"d\":{\"b\":69,\"d\":159,\"f\":2},\"c\":\"green\",\"h\":65,\"b\":{\"c\":126,\"a\":106,\"b\":190,\"d\":-40},\"g\":134,\"f\":\"red\"},\"h\":87,\"b\":[-3,\"yellow\",50,120],\"g\":{\"e\":[138,83,\"red\"],\"c\":[\"yellow\",[\"red\",177,98,\"blue\",179,\"blue\",\"violet\",23],108,[\"green\",17,-46,3,99],-43,46,\"orange\",\"yellow\",{\"a\":192,\"b\":39},57],\"a\":\"red\",\"b\":195,\"d\":172}}}}]; 254",
         ], delimiter = ';'
     )
     fun `given a valid json document the sum of non red numbers are well calculated`(given: String, expected: Int) {
