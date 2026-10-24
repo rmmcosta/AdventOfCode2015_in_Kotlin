@@ -1,6 +1,6 @@
 package org.example
 
-import javax.swing.plaf.TableHeaderUI
+import kotlin.collections.mutableListOf
 
 /*
 --- Day 12: JSAbacusFramework.io ---
@@ -32,12 +32,11 @@ fun ex12SumAllNumbers(document: String): Int {
 }
 
 fun ex12SumAllNonRedNumbers(document: String): Int {
-    val openObjects: MutableList<Boolean> = mutableListOf()//true is red, false is non red
-    val numbersToAdd: MutableList<MutableList<Int>> = mutableListOf()
-    var accumulator = 0
     var previousRedChar: Char? = null
     var currentNumber = ""
     var wasDigit = false
+    var rootDocumentValue: DocumentValue? = null
+    var currentDocumentValue: DocumentValue? = null
     document.toCharArray().forEach { char ->
         if (char == '-')
             currentNumber += char
@@ -47,46 +46,102 @@ fun ex12SumAllNonRedNumbers(document: String): Int {
         }
         if (!char.isDigit() && wasDigit) {
             wasDigit = false
-            if (numbersToAdd.isEmpty())
-                numbersToAdd.add(mutableListOf())
-            numbersToAdd.last().add(currentNumber.toInt())
+            when (currentDocumentValue) {
+                is ArrayValue -> if (currentDocumentValue.parentDocumentValue !is ObjectValue
+                    || !currentDocumentValue.parentDocumentValue.isRed
+                ) currentDocumentValue.values.add(
+                    IntValue(currentNumber.toInt())
+                )
+
+                is ObjectValue -> if (currentDocumentValue.parentDocumentValue !is ObjectValue
+                    || !currentDocumentValue.parentDocumentValue.isRed
+                ) currentDocumentValue.values.add(
+                    IntValue(currentNumber.toInt())
+                )
+
+                else -> throw RuntimeException("Invalid DocumentValue")
+            }
             currentNumber = ""
         }
 
+        if (char == '[') {
+            val newDocumentValue = ArrayValue(currentDocumentValue)
+            if (rootDocumentValue == null)
+                rootDocumentValue = newDocumentValue
+            else {
+                when (currentDocumentValue) {
+                    is ArrayValue -> currentDocumentValue.values.add(newDocumentValue)
+                    is ObjectValue -> currentDocumentValue.values.add(newDocumentValue)
+                    else -> throw RuntimeException("Invalid DocumentValue")
+                }
+            }
+            currentDocumentValue = newDocumentValue
+        }
+
         if (char == '{') {
-            if (openObjects.isEmpty()) {
-                accumulator += numbersToAdd.flatten().sum()
-                numbersToAdd.clear()
-            } else
-                numbersToAdd.add(mutableListOf())
-            openObjects.add(false)//initially is a non red object
+            val newDocumentValue = ObjectValue(currentDocumentValue)
+            if (rootDocumentValue == null)
+                rootDocumentValue = newDocumentValue
+            else {
+                when (currentDocumentValue) {
+                    is ArrayValue -> currentDocumentValue.values.add(newDocumentValue)
+                    is ObjectValue -> currentDocumentValue.values.add(newDocumentValue)
+                    else -> throw RuntimeException("Invalid DocumentValue")
+                }
+            }
+            currentDocumentValue = newDocumentValue
         }
-        if (char == '}' && openObjects.isNotEmpty()) {
-            //if none of the open objects are red/true
-            if (openObjects.none { it } && numbersToAdd.isNotEmpty())
-                accumulator += numbersToAdd.last().sum()
-            if (numbersToAdd.isNotEmpty())
-                numbersToAdd.removeLast()
-            openObjects.removeLast()
+
+        if (char == '}' || char == ']') {
+            currentDocumentValue = when (currentDocumentValue) {
+                is ArrayValue -> currentDocumentValue.parentDocumentValue
+                is ObjectValue -> currentDocumentValue.parentDocumentValue
+                else -> throw RuntimeException("Invalid DocumentValue")
+            }
         }
+
         when (char) {
             'r' if previousRedChar == null -> previousRedChar = 'r'
             'e' if previousRedChar == 'r' -> previousRedChar = 'e'
             'd' if previousRedChar == 'e' -> {
-                //if inside object which was initially non red is a red after all
-                if (openObjects.isNotEmpty()) {
-                    openObjects.removeLast()
-                    openObjects.add(true)
+                if (currentDocumentValue is ObjectValue) {
+                    currentDocumentValue.isRed = true
                 }
-                previousRedChar = null
             }
 
             else -> previousRedChar = null
         }
     }
-    if (numbersToAdd.isNotEmpty())
-        accumulator += numbersToAdd.flatten().sum()
 
-    println("Sum of the non red numbers: $accumulator")
-    return accumulator
+    val totalSum = sumNonRedNumbers(rootDocumentValue ?: throw Exception("Invalid DocumentValue"), 0)
+
+    println("Sum of the non red numbers: $totalSum")
+    return totalSum
 }
+
+private fun sumNonRedNumbers(documentValue: DocumentValue, acc: Int): Int {
+    if (documentValue is ObjectValue && documentValue.isRed) return 0
+    if (documentValue is IntValue) return acc + documentValue.value
+    return when (documentValue) {
+        is ArrayValue -> documentValue.values.filter { it !is ObjectValue || !it.isRed }
+            .sumOf { sumNonRedNumbers(it, acc) }
+
+        is ObjectValue -> documentValue.values.filter { it !is ObjectValue || !it.isRed }
+            .sumOf { sumNonRedNumbers(it, acc) }
+    }
+}
+
+sealed interface DocumentValue
+
+data class ArrayValue(
+    val parentDocumentValue: DocumentValue? = null,
+    val values: MutableList<DocumentValue> = mutableListOf()
+) : DocumentValue
+
+data class ObjectValue(
+    val parentDocumentValue: DocumentValue? = null,
+    var isRed: Boolean = false,
+    val values: MutableList<DocumentValue> = mutableListOf()
+) : DocumentValue
+
+data class IntValue(val value: Int) : DocumentValue
