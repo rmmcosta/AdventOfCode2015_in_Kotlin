@@ -78,5 +78,7 @@ fun main() {
     //ex11GenerateNewPassword(ex11GenerateNewPassword("cqjxjnds"))
 
     //ex12SumAllNumbers(readTextFromResource("ex12_document"))
-    ex12SumAllNonRedNumbers(readTextFromResource("ex12_document"))
+    //ex12SumAllNonRedNumbers(readTextFromResource("ex12_document"))
+
+    ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness"))
 }
