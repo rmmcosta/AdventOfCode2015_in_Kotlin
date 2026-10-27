@@ -80,5 +80,6 @@ fun main() {
     //ex12SumAllNumbers(readTextFromResource("ex12_document"))
     //ex12SumAllNonRedNumbers(readTextFromResource("ex12_document"))
 
-    ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness"))
+    //ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness"))
+    ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness_part2"))
 }
