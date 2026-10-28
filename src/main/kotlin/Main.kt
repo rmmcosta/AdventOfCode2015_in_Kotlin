@@ -81,5 +81,7 @@ fun main() {
     //ex12SumAllNonRedNumbers(readTextFromResource("ex12_document"))
 
     //ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness"))
-    ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness_part2"))
+    //ex13CalculateTotalChangeInHappiness(readTextFromResource("ex13_potentialHappiness_part2"))
+
+    ex14CalculateFastestReindeerDistanceTraveled(readTextFromResource("ex14_reindeer_descriptions"), 2503)
 }
