@@ -10,7 +10,7 @@ class Ex15Test {
             Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3
         """.trimIndent()
         val score = ex15CalculateRecipeScore(descriptions)
-        assertEquals(62842880, score)
+        assertEquals(57600000, score)
     }
 
 }

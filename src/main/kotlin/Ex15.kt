@@ -41,10 +41,11 @@ causing the whole score to multiply to zero.
  */
 
 const val RECIPE_TEASPOONS = 100
+const val RECIPE_CALORIES = 500
 
 fun ex15CalculateRecipeScore(ingredients: String): Int {
     val ingredients = parseIngredients(ingredients)
-    val combinations = generateCombinations(ingredients.size)
+    val combinations = generateCombinations(ingredients)
     val recipes = generateRecipes(combinations, ingredients)
     val scores = recipes.map { recipe ->
         recipe to calculateScore(recipe)
@@ -62,28 +63,28 @@ private fun generateRecipes(combinations: List<List<Int>>, ingredients: List<Ing
         Recipe(quantities)
     }
 
-private fun generateCombinations(ingredientsQty: Int): List<List<Int>> {
+private fun generateCombinations(ingredients: List<Ingredient>): List<List<Int>> {
     //one spoon per ingredient
-    val spoons = (0 until ingredientsQty).map { 0 }
+    val spoons = ingredients.indices.map { 0 }
     val combinations = mutableListOf(spoons)
     val latestSpoonValues: MutableMap<Int, Int> = mutableMapOf()
     latestSpoonValues.putAll(List(spoons.size) { i -> i to 0 }.toMap())
-    val currentSpoon = ingredientsQty - 1
+    val lastSpoon = spoons.size - 1
     var validCombinations = 0
     while (!latestSpoonValues.values.all { it == RECIPE_TEASPOONS }) {
-        var currentSpoonQty = latestSpoonValues[currentSpoon]!!
+        var currentSpoonQty = latestSpoonValues[lastSpoon]!!
         var lastCombination = latestSpoonValues.keys.sorted().map { latestSpoonValues[it]!! }
         while (currentSpoonQty < RECIPE_TEASPOONS) {
-            val newCombination = getNextCombination(lastCombination, currentSpoon)
+            val newCombination = getNextCombination(lastCombination, lastSpoon)
             lastCombination = newCombination
-            if (isValidCombination(newCombination)) {
+            if (isValidCombination(newCombination, ingredients)) {
                 validCombinations++
                 println("valid combinations so far: $validCombinations")
                 combinations.add(newCombination)
             }
             currentSpoonQty++
         }
-        var previousSpoon = currentSpoon - 1
+        var previousSpoon = lastSpoon - 1
         println("last combination: $lastCombination")
         while (previousSpoon >= 0 && lastCombination[previousSpoon] == RECIPE_TEASPOONS) {
             previousSpoon--
@@ -91,12 +92,12 @@ private fun generateCombinations(ingredientsQty: Int): List<List<Int>> {
         if (previousSpoon > -1) {
             val nextCombination = lastCombination.toMutableList()
             nextCombination[previousSpoon]++
-            while (previousSpoon < ingredientsQty - 1) {
+            while (previousSpoon < spoons.size - 1) {
                 previousSpoon++
                 nextCombination[previousSpoon] = 0
             }
             println("Previous spoon: $previousSpoon, nextCombination: $nextCombination")
-            if (isValidCombination(nextCombination)) {
+            if (isValidCombination(nextCombination, ingredients)) {
                 combinations.add(nextCombination)
             }
             nextCombination.forEachIndexed { index, spoonValue ->
@@ -104,14 +105,16 @@ private fun generateCombinations(ingredientsQty: Int): List<List<Int>> {
             }
         } else {
             println("Valid combinations: $validCombinations")
-            return combinations.filter(::isValidCombination)
+            return combinations
         }
     }
     println("Valid combinations: $validCombinations")
-    return combinations.filter(::isValidCombination)
+    return combinations
 }
 
-private fun isValidCombination(combination: List<Int>): Boolean = combination.sum() == RECIPE_TEASPOONS
+private fun isValidCombination(combination: List<Int>, ingredients: List<Ingredient>): Boolean =
+    combination.sum() == RECIPE_TEASPOONS && combination.zip(ingredients)
+        .sumOf { (quantity, ingredient) -> quantity * ingredient.calories } == RECIPE_CALORIES
 
 private fun getNextCombination(lastCombination: List<Int>, currentSpoon: Int): List<Int> {
     val newCombination = lastCombination.toMutableList()
