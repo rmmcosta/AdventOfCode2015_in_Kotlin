@@ -66,19 +66,24 @@ private fun generateCombinations(ingredientsQty: Int): List<List<Int>> {
     //one spoon per ingredient
     val spoons = (0 until ingredientsQty).map { 0 }
     val combinations = mutableListOf(spoons)
+    val latestSpoonValues: MutableMap<Int, Int> = mutableMapOf()
+    latestSpoonValues.putAll(List(spoons.size) { i -> i to 0 }.toMap())
     val currentSpoon = ingredientsQty - 1
     var validCombinations = 0
-    while (combinations.none { combination -> combination.all { it == RECIPE_TEASPOONS } }) {
-        var currentSpoonQty = combinations.last()[currentSpoon]
+    while (!latestSpoonValues.values.all { it == RECIPE_TEASPOONS }) {
+        var currentSpoonQty = latestSpoonValues[currentSpoon]!!
+        var lastCombination = latestSpoonValues.keys.sorted().map { latestSpoonValues[it]!! }
         while (currentSpoonQty < RECIPE_TEASPOONS) {
-            val newCombination = getNextCombination(combinations.last(), currentSpoon)
-            combinations.add(newCombination)
-            if (isValidCombination(newCombination))
+            val newCombination = getNextCombination(lastCombination, currentSpoon)
+            lastCombination = newCombination
+            if (isValidCombination(newCombination)) {
                 validCombinations++
-            currentSpoonQty = newCombination[currentSpoon]
+                println("valid combinations so far: $validCombinations")
+                combinations.add(newCombination)
+            }
+            currentSpoonQty++
         }
         var previousSpoon = currentSpoon - 1
-        val lastCombination = combinations.last()
         println("last combination: $lastCombination")
         while (previousSpoon >= 0 && lastCombination[previousSpoon] == RECIPE_TEASPOONS) {
             previousSpoon--
@@ -91,7 +96,15 @@ private fun generateCombinations(ingredientsQty: Int): List<List<Int>> {
                 nextCombination[previousSpoon] = 0
             }
             println("Previous spoon: $previousSpoon, nextCombination: $nextCombination")
-            combinations.add(nextCombination)
+            if (isValidCombination(nextCombination)) {
+                combinations.add(nextCombination)
+            }
+            nextCombination.forEachIndexed { index, spoonValue ->
+                latestSpoonValues[index] = spoonValue
+            }
+        } else {
+            println("Valid combinations: $validCombinations")
+            return combinations.filter(::isValidCombination)
         }
     }
     println("Valid combinations: $validCombinations")
