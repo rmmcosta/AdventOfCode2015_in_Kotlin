@@ -1,5 +1,6 @@
 package org.example
 
+import kotlin.let
 import kotlin.reflect.full.memberProperties
 
 /*
@@ -47,13 +48,13 @@ private fun getPossibleAuntSues(auntSues: List<AuntSue>, expectedDetectionResult
     //given all known characteristics check if this can be the aunt sue we are looking for
     auntSues.filter { auntSue ->
         auntSue.characteristics.children?.equals(expectedDetectionResult.children) ?: true
-                && auntSue.characteristics.cats?.equals(expectedDetectionResult.cats) ?: true
+                && auntSue.characteristics.cats?.let { it > expectedDetectionResult.cats!! } ?: true
                 && auntSue.characteristics.samoyeds?.equals(expectedDetectionResult.samoyeds) ?: true
-                && auntSue.characteristics.pomeranians?.equals(expectedDetectionResult.pomeranians) ?: true
+                && auntSue.characteristics.pomeranians?.let { it < expectedDetectionResult.pomeranians!! } ?: true
                 && auntSue.characteristics.akitas?.equals(expectedDetectionResult.akitas) ?: true
                 && auntSue.characteristics.vizslas?.equals(expectedDetectionResult.vizslas) ?: true
-                && auntSue.characteristics.goldfish?.equals(expectedDetectionResult.goldfish) ?: true
-                && auntSue.characteristics.trees?.equals(expectedDetectionResult.trees) ?: true
+                && auntSue.characteristics.goldfish?.let { it < expectedDetectionResult.goldfish!! } ?: true
+                && auntSue.characteristics.trees?.let { it > expectedDetectionResult.trees!! } ?: true
                 && auntSue.characteristics.cars?.equals(expectedDetectionResult.cars) ?: true
                 && auntSue.characteristics.perfumes?.equals(expectedDetectionResult.perfumes) ?: true
     }
