@@ -25,10 +25,16 @@ Given the descriptions of each reindeer (in your puzzle input), after exactly 25
 what distance has the winning reindeer traveled?
  */
 
-fun ex14CalculateFastestReindeerDistanceTraveled(reindeerDescriptions: String, flightDuration: Int): Int {
+fun ex14CalculateFastestReindeerDistanceTraveled(reindeerDescriptions: String, flightDuration: Int): Pair<Int, Int> {
     val reindeerList: Set<Reindeer> = getReindeerList(reindeerDescriptions)
     val flights = reindeerList.map { reindeer -> Flight(reindeer) }
     (0..flightDuration).forEach { currentSecond ->
+        if (currentSecond > 0) {
+            val leadingDistance = flights.maxOf { it.distanceTraveled }
+            flights.filter { it.distanceTraveled == leadingDistance }.forEach { flight ->
+                flight.points += 1
+            }
+        }
         val inFlightReindeer = flights.filter { flight -> flight.enteredFlightAt != null }
         val atRestReindeer = flights.filter { flight -> flight.enteredRestAt != null }
 
@@ -51,10 +57,13 @@ fun ex14CalculateFastestReindeerDistanceTraveled(reindeerDescriptions: String, f
             }
         }
     }
+
     println(flights)
     val maxDistance = flights.maxOf { flight -> flight.distanceTraveled }
+    val maxPoints = flights.maxOf { flight -> flight.points }
     println("max distance traveled: $maxDistance")
-    return maxDistance
+    println("max points: $maxPoints")
+    return maxDistance to maxPoints
 }
 
 private fun getReindeerList(reindeerDescriptions: String): Set<Reindeer> =
@@ -75,9 +84,10 @@ data class Reindeer(val name: String, val velocity: Int, val velocityDuration: I
 data class Flight(
     val reindeer: Reindeer,
     var distanceTraveled: Int = 0,
+    var points: Int = 0,
     var enteredFlightAt: Int? = 0,
     var enteredRestAt: Int? = null
 ) {
     override fun toString(): String =
-        "$reindeer, distance traveled: $distanceTraveled and ${if (enteredRestAt != null) "is resting" else if (enteredFlightAt != null) "is flying" else "is in a wrong state"}"
+        "$reindeer, with $points point, distance traveled: $distanceTraveled and ${if (enteredRestAt != null) "is resting" else if (enteredFlightAt != null) "is flying" else "is in a wrong state"}"
 }
