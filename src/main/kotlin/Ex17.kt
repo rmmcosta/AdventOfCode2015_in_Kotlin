@@ -14,12 +14,16 @@ Filling all containers entirely,
 how many different combinations of containers can exactly fit all 150 liters of eggnog?
  */
 
-fun ex17CalculateContainersCombinations(containersList: String, eggnogAmount: Int): Int {
+fun ex17CalculateContainersCombinations(containersList: String, eggnogAmount: Int): Pair<Int, Int> {
     val containersList = parseContainers(containersList)
     val containersCombinations: List<List<Pair<Int, Int>>> =
         generateContainersCombinations(containersList, eggnogAmount)
     println("There are ${containersCombinations.size} possible combinations.")
-    return containersCombinations.size
+    val minNumOfContainers = containersCombinations.minOf { combination -> combination.count { it.second != 0 } }
+    val minNumOfCombinations =
+        containersCombinations.count { combination -> combination.count { it.second != 0 } == minNumOfContainers }
+    println("Minimum number of combinations: $minNumOfCombinations")
+    return containersCombinations.size to minNumOfCombinations
 }
 
 private fun generateContainersCombinations(

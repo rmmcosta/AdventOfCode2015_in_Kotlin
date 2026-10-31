@@ -13,7 +13,8 @@ class Ex17Test {
            5
         """.trimIndent()
         val possibleCombinations = ex17CalculateContainersCombinations(containers, 25)
-        assertEquals(4, possibleCombinations)
+        assertEquals(4, possibleCombinations.first)
+        assertEquals(3, possibleCombinations.second)
     }
 
 }
