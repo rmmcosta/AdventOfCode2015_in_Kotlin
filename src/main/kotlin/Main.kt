@@ -86,5 +86,7 @@ fun main() {
     //ex14CalculateFastestReindeerDistanceTraveled(readTextFromResource("ex14_reindeer_descriptions"), 2503)
 
     //ex15CalculateRecipeScore(readTextFromResource("ex15_ingredients"))
-    ex16CalculateAuntSureNumber(readTextFromResource("ex16_descriptions"))
+    //ex16CalculateAuntSureNumber(readTextFromResource("ex16_descriptions"))
+    
+    ex17CalculateContainersCombinations(readTextFromResource("ex17_containers"), 150)
 }
