@@ -87,8 +87,9 @@ fun main() {
 
     //ex15CalculateRecipeScore(readTextFromResource("ex15_ingredients"))
     //ex16CalculateAuntSureNumber(readTextFromResource("ex16_descriptions"))
-    
+
     //ex17CalculateContainersCombinations(readTextFromResource("ex17_containers"), 150)
-    
-    ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100)
+
+    //ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100, emptyList())
+    ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100, listOf(0 to 0, 99 to 0, 0 to 99, 99 to 9))
 }

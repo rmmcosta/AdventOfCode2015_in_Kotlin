@@ -75,17 +75,21 @@ After 4 steps, this example has four lights on.
 In your grid of 100x100 lights, given your initial configuration, how many lights are on after 100 steps?
  */
 
-fun ex18CalculateLightsOn(lightsConfiguration: String, afterStep: Int): Int {
-    var currentLightsState = parseLights(lightsConfiguration)
+fun ex18CalculateLightsOn(lightsConfiguration: String, afterStep: Int, fixedLights: List<Pair<Int, Int>>): Int {
+    var currentLightsState = parseLights(lightsConfiguration, fixedLights)
     val gridSize = currentLightsState.size
     repeat(afterStep) {
         currentLightsState = currentLightsState.mapIndexed { x, lineLights ->
             lineLights.mapIndexed { y, light ->
-                val neighbors = getNeighbors(x to y, gridSize)
-                val neighborsStates = neighbors.map { (x, y) ->
-                    currentLightsState[x][y]
+                if ((x to y) in fixedLights)
+                    true
+                else {
+                    val neighbors = getNeighbors(x to y, gridSize)
+                    val neighborsStates = neighbors.map { (x, y) ->
+                        currentLightsState[x][y]
+                    }
+                    getLightNextState(light, neighborsStates)
                 }
-                getLightNextState(light, neighborsStates)
             }
         }
         println()
@@ -96,8 +100,12 @@ fun ex18CalculateLightsOn(lightsConfiguration: String, afterStep: Int): Int {
     return lightsOn
 }
 
-private fun parseLights(lightsConfiguration: String): List<List<Boolean>> =
-    lightsConfiguration.lines().map { line -> line.toCharArray().map { it == '#' } }
+private fun parseLights(lightsConfiguration: String, fixedLights: List<Pair<Int, Int>>): List<List<Boolean>> =
+    lightsConfiguration.lines().mapIndexed { x, line ->
+        line.toCharArray().mapIndexed { y, light ->
+            (x to y) in fixedLights || light == '#'
+        }
+    }
 
 private fun printLights(lights: List<List<Boolean>>) {
     lights.forEach { line ->
