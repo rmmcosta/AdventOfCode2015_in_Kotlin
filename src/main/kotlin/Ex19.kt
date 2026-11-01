@@ -42,7 +42,7 @@ How many distinct molecules can be created after all the different ways you can 
 
 fun ex19CalculateMolecules(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
-    val possibleMolecules = calibrate(molecule, replacements)
+    val possibleMolecules = runBlocking { calibrate(molecule, replacements) }
     println("There are ${possibleMolecules.size} possible molecules.")
     return possibleMolecules.size
 }
@@ -94,18 +94,21 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     }
 }
 
-private fun calibrate(originalMolecule: String, replacements: List<Pair<String, String>>): Set<String> {
-    val possibleMolecules = mutableSetOf<String>()
+private suspend fun calibrate(originalMolecule: String, replacements: List<Pair<String, String>>): Set<String> {
     //the marked molecule will have a marker for the already replaced parts
-    var markedMolecule = originalMolecule
     val marker = "-1"
-    replacements.forEach { (old, new) ->
-        while (markedMolecule.contains(old)) {
-            val newMolecule = markedMolecule.replaceFirst(old, new)
-            possibleMolecules.add(newMolecule.replace(marker, old))
-            markedMolecule = markedMolecule.replaceFirst(old, marker)
-        }
-        markedMolecule = originalMolecule
+    return coroutineScope {
+        replacements.map { (old, new) ->
+            async {
+                val currentReplacementMolecule = mutableListOf<String>()
+                var markedMolecule = originalMolecule
+                while (markedMolecule.contains(old)) {
+                    val newMolecule = markedMolecule.replaceFirst(old, new)
+                    currentReplacementMolecule.add(newMolecule.replace(marker, old))
+                    markedMolecule = markedMolecule.replaceFirst(old, marker)
+                }
+                currentReplacementMolecule.toSet()
+            }
+        }.awaitAll().flatten().toSet()
     }
-    return possibleMolecules
 }
