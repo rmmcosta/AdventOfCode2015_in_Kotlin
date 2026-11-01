@@ -1,5 +1,13 @@
 package org.example
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
+
 /*
 It works by starting with some input molecule and then doing a series of replacements, 
 one per step, until it has the right molecule
@@ -37,6 +45,44 @@ fun ex19CalculateMolecules(moleculesDescription: String): Int {
     val possibleMolecules = calibrate(molecule, replacements)
     println("There are ${possibleMolecules.size} possible molecules.")
     return possibleMolecules.size
+}
+
+fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
+    val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
+    var steps = 0
+    var newMolecules = setOf("e")
+    while (molecule !in newMolecules) {
+        runBlocking {
+            newMolecules = getNewMoleculesAsync(newMolecules, replacements)
+            steps++
+            println("current step: $steps")
+        }
+    }
+    println("It took $steps steps to get the final molecule")
+    return steps
+}
+
+private suspend fun getNewMoleculesAsync(
+    newMolecules: Set<String>,
+    replacements: List<Pair<String, String>>
+): Set<String> = coroutineScope {
+    newMolecules.map { currentMolecule ->
+        async {
+            calibrate(currentMolecule, replacements)
+        }
+    }.awaitAll().flatten().toSet()
+}
+
+//example
+private suspend fun executeManyCoroutinesInParallelUsingAsync(): List<Int> = coroutineScope {
+    (1..5).map { n ->
+        async {
+            val delay = Random.nextInt(100, 1000)
+            delay(delay.milliseconds)
+            println("- processing $n")
+            n * n
+        }
+    }.awaitAll()
 }
 
 private fun parseMoleculesDescription(moleculesDescription: String): Pair<String, List<Pair<String, String>>> {

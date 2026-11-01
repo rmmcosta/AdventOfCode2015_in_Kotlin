@@ -46,7 +46,7 @@ private fun returnFirstFound(input: String, start: Int, end: Int, match: String)
     return Int.MAX_VALUE
 }
 
-suspend fun executeManyCoroutinesInParallelUsingAsync(): List<Int> {
+private suspend fun executeManyCoroutinesInParallelUsingAsync(): List<Int> {
     val result = coroutineScope {
         (1..5).map { n ->
             async {
