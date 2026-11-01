@@ -91,5 +91,7 @@ fun main() {
     //ex17CalculateContainersCombinations(readTextFromResource("ex17_containers"), 150)
 
     //ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100, emptyList())
-    ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100, listOf(0 to 0, 99 to 0, 0 to 99, 99 to 9))
+    //ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100, listOf(0 to 0, 99 to 0, 0 to 99, 99 to 9))
+
+    ex19CalculateMolecules(readTextFromResource("ex19_description"))
 }
