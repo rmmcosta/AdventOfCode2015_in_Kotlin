@@ -1,5 +1,6 @@
 package org.example
 
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -42,7 +43,7 @@ How many distinct molecules can be created after all the different ways you can 
 
 fun ex19CalculateMolecules(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
-    val possibleMolecules = runBlocking { calibrate(molecule, replacements) }
+    val possibleMolecules = runBlocking { calibrate(molecule, replacements) }.toSet()
     println("There are ${possibleMolecules.size} possible molecules.")
     return possibleMolecules.size
 }
@@ -50,7 +51,7 @@ fun ex19CalculateMolecules(moleculesDescription: String): Int {
 fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
     var steps = 0
-    var newMolecules = setOf("e")
+    var newMolecules = sequenceOf("e")
     while (molecule !in newMolecules) {
         runBlocking {
             newMolecules = getNewMoleculesAsync(newMolecules, replacements)
@@ -63,14 +64,14 @@ fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
 }
 
 private suspend fun getNewMoleculesAsync(
-    newMolecules: Set<String>,
+    newMolecules: Sequence<String>,
     replacements: List<Pair<String, String>>
-): Set<String> = coroutineScope {
+): Sequence<String> = coroutineScope {
     newMolecules.map { currentMolecule ->
         async {
             calibrate(currentMolecule, replacements)
         }
-    }.awaitAll().flatten().toSet()
+    }.toSet().awaitAll().asSequence().flatten()
 }
 
 //example
@@ -94,21 +95,22 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     }
 }
 
-private suspend fun calibrate(originalMolecule: String, replacements: List<Pair<String, String>>): Set<String> {
+private suspend fun calibrate(originalMolecule: String, replacements: List<Pair<String, String>>): Sequence<String> {
     //the marked molecule will have a marker for the already replaced parts
     val marker = "-1"
     return coroutineScope {
         replacements.map { (old, new) ->
             async {
-                val currentReplacementMolecule = mutableListOf<String>()
-                var markedMolecule = originalMolecule
-                while (markedMolecule.contains(old)) {
-                    val newMolecule = markedMolecule.replaceFirst(old, new)
-                    currentReplacementMolecule.add(newMolecule.replace(marker, old))
-                    markedMolecule = markedMolecule.replaceFirst(old, marker)
+                sequence {
+                    var markedMolecule = originalMolecule
+                    while (markedMolecule.contains(old)) {
+                        val newMarkedMolecule = markedMolecule.replaceFirst(old, new)
+                        val newMolecule = newMarkedMolecule.replace(marker, old)
+                        markedMolecule = markedMolecule.replaceFirst(old, marker)
+                        yield(newMolecule)
+                    }
                 }
-                currentReplacementMolecule.toSet()
             }
-        }.awaitAll().flatten().toSet()
+        }.awaitAll().asSequence().flatten()
     }
 }
