@@ -1,13 +1,11 @@
 package org.example
 
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlin.random.Random
-import kotlin.time.Duration.Companion.milliseconds
+import java.io.File
+import kotlin.time.Clock
 
 /*
 It works by starting with some input molecule and then doing a series of replacements, 
@@ -43,47 +41,66 @@ How many distinct molecules can be created after all the different ways you can 
 
 fun ex19CalculateMolecules(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
-    val possibleMolecules = runBlocking { calibrate(molecule, replacements) }.toSet()
-    println("There are ${possibleMolecules.size} possible molecules.")
-    return possibleMolecules.size
+    val newMolecules = runBlocking { generateNewMolecules(molecule, replacements) }
+    println("There are ${newMolecules.size} possible molecules.")
+    return newMolecules.size
 }
 
 fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
     var steps = 0
-    var newMolecules = sequenceOf("e")
-    while (molecule !in newMolecules) {
-        runBlocking {
-            newMolecules = getNewMoleculesAsync(newMolecules, replacements)
-            steps++
-            println("current step: $steps")
+    val guid = Clock.System.now().epochSeconds
+    var fileNameToRead = "ex19_${guid}_0"
+    var fileNameToWrite = "ex19_${guid}_1"
+    //the first time no file exists, so we need to write the first molecule first
+    writeMoleculesToFile(fileNameToRead, setOf("e"))
+    while (!moleculeFoundInFile(fileNameToRead, molecule)) {
+        val file = File(fileNameToRead)
+        file.useLines { lines ->
+            val actualLines = lines.take(100).toSet()
+            runBlocking {
+                val newMolecules = generateNewMoleculesAsync(actualLines, replacements)
+                writeMoleculesToFile(fileNameToWrite, newMolecules)
+            }
         }
+        steps++
+        println("current step: $steps")
+        fileNameToRead = "ex19_${guid}_$steps"
+        fileNameToWrite = "ex19_${guid}_${steps + 1}"
     }
     println("It took $steps steps to get the final molecule")
     return steps
 }
 
-private suspend fun getNewMoleculesAsync(
-    newMolecules: Sequence<String>,
-    replacements: List<Pair<String, String>>
-): Sequence<String> = coroutineScope {
-    newMolecules.map { currentMolecule ->
-        async {
-            calibrate(currentMolecule, replacements)
+private fun moleculeFoundInFile(fileName: String, molecule: String): Boolean {
+    val file = File(fileName)
+    file.useLines { lines ->
+        lines.forEach { line ->
+            if (molecule == line)
+                return true
         }
-    }.toSet().awaitAll().asSequence().flatten()
+    }
+    return false
 }
 
-//example
-private suspend fun executeManyCoroutinesInParallelUsingAsync(): List<Int> = coroutineScope {
-    (1..5).map { n ->
-        async {
-            val delay = Random.nextInt(100, 1000)
-            delay(delay.milliseconds)
-            println("- processing $n")
-            n * n
+private fun writeMoleculesToFile(fileName: String, molecules: Set<String>) {
+    val file = File(fileName)
+    file.bufferedWriter().use { out ->
+        molecules.forEach { molecule ->
+            out.appendLine(molecule)
         }
-    }.awaitAll()
+    }
+}
+
+private suspend fun generateNewMoleculesAsync(
+    newMolecules: Set<String>,
+    replacements: List<Pair<String, String>>
+): Set<String> = coroutineScope {
+    newMolecules.map { currentMolecule ->
+        async {
+            generateNewMolecules(currentMolecule, replacements)
+        }
+    }.awaitAll().flatten().toSet()
 }
 
 private fun parseMoleculesDescription(moleculesDescription: String): Pair<String, List<Pair<String, String>>> {
@@ -95,22 +112,24 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     }
 }
 
-private suspend fun calibrate(originalMolecule: String, replacements: List<Pair<String, String>>): Sequence<String> {
+private suspend fun generateNewMolecules(
+    originalMolecule: String,
+    replacements: List<Pair<String, String>>
+): Set<String> {
     //the marked molecule will have a marker for the already replaced parts
     val marker = "-1"
     return coroutineScope {
         replacements.map { (old, new) ->
             async {
-                sequence {
-                    var markedMolecule = originalMolecule
-                    while (markedMolecule.contains(old)) {
-                        val newMarkedMolecule = markedMolecule.replaceFirst(old, new)
-                        val newMolecule = newMarkedMolecule.replace(marker, old)
-                        markedMolecule = markedMolecule.replaceFirst(old, marker)
-                        yield(newMolecule)
-                    }
+                val newMolecules = mutableListOf<String>()
+                var markedMolecule = originalMolecule
+                while (markedMolecule.contains(old)) {
+                    val newMarkedMolecule = markedMolecule.replaceFirst(old, new)
+                    newMolecules.add(newMarkedMolecule.replace(marker, old))
+                    markedMolecule = markedMolecule.replaceFirst(old, marker)
                 }
+                newMolecules.toSet()
             }
-        }.awaitAll().asSequence().flatten()
+        }.awaitAll().flatten().toSet()
     }
 }
