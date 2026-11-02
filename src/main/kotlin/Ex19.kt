@@ -1,9 +1,5 @@
 package org.example
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.time.Clock
 
@@ -41,7 +37,7 @@ How many distinct molecules can be created after all the different ways you can 
 
 fun ex19CalculateMolecules(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
-    val newMolecules = runBlocking { generateNewMolecules(molecule, replacements) }
+    val newMolecules = generateNewMolecules(sequenceOf(molecule), replacements).toSet()
     println("There are ${newMolecules.size} possible molecules.")
     return newMolecules.size
 }
@@ -53,24 +49,27 @@ fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
     var fileNameToRead = "ex19_${guid}_0"
     var fileNameToWrite = "ex19_${guid}_1"
     //the first time no file exists, so we need to write the first molecule first
-    writeMoleculesToFile(fileNameToRead, setOf("e"))
+    writeMoleculesToFile(fileNameToRead, sequenceOf("e"))
     while (!moleculeFoundInFile(fileNameToRead, molecule)) {
         val file = File(fileNameToRead)
         file.useLines { lines ->
-            val actualLines = lines.take(100).toSet()
-            runBlocking {
-                val newMolecules = generateNewMoleculesAsync(actualLines, replacements)
-                writeMoleculesToFile(fileNameToWrite, newMolecules)
-            }
+            var newMolecules = generateNewMolecules(lines, replacements)
+            if (steps > 3)
+                newMolecules = newMolecules.filter { hasCommonChars(it, molecule) }
+            writeMoleculesToFile(fileNameToWrite, newMolecules)
         }
         steps++
         println("current step: $steps")
+        file.delete()
         fileNameToRead = "ex19_${guid}_$steps"
         fileNameToWrite = "ex19_${guid}_${steps + 1}"
     }
     println("It took $steps steps to get the final molecule")
     return steps
 }
+
+fun hasCommonChars(molecule1: String, molecule2: String): Boolean =
+    molecule1.zip(molecule2).any { it.first == it.second }
 
 private fun moleculeFoundInFile(fileName: String, molecule: String): Boolean {
     val file = File(fileName)
@@ -83,7 +82,7 @@ private fun moleculeFoundInFile(fileName: String, molecule: String): Boolean {
     return false
 }
 
-private fun writeMoleculesToFile(fileName: String, molecules: Set<String>) {
+private fun writeMoleculesToFile(fileName: String, molecules: Sequence<String>) {
     val file = File(fileName)
     file.bufferedWriter().use { out ->
         molecules.forEach { molecule ->
@@ -92,15 +91,11 @@ private fun writeMoleculesToFile(fileName: String, molecules: Set<String>) {
     }
 }
 
-private suspend fun generateNewMoleculesAsync(
-    newMolecules: Set<String>,
+private fun generateNewMolecules(
+    newMolecules: Sequence<String>,
     replacements: List<Pair<String, String>>
-): Set<String> = coroutineScope {
-    newMolecules.map { currentMolecule ->
-        async {
-            generateNewMolecules(currentMolecule, replacements)
-        }
-    }.awaitAll().flatten().toSet()
+): Sequence<String> = newMolecules.flatMap { currentMolecule ->
+    calibrate(currentMolecule, replacements)
 }
 
 private fun parseMoleculesDescription(moleculesDescription: String): Pair<String, List<Pair<String, String>>> {
@@ -112,24 +107,20 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     }
 }
 
-private suspend fun generateNewMolecules(
+private fun calibrate(
     originalMolecule: String,
     replacements: List<Pair<String, String>>
-): Set<String> {
+): Sequence<String> {
     //the marked molecule will have a marker for the already replaced parts
     val marker = "-1"
-    return coroutineScope {
-        replacements.map { (old, new) ->
-            async {
-                val newMolecules = mutableListOf<String>()
-                var markedMolecule = originalMolecule
-                while (markedMolecule.contains(old)) {
-                    val newMarkedMolecule = markedMolecule.replaceFirst(old, new)
-                    newMolecules.add(newMarkedMolecule.replace(marker, old))
-                    markedMolecule = markedMolecule.replaceFirst(old, marker)
-                }
-                newMolecules.toSet()
+    return sequence {
+        replacements.forEach { (old, new) ->
+            var markedMolecule = originalMolecule
+            while (markedMolecule.contains(old)) {
+                val newMarkedMolecule = markedMolecule.replaceFirst(old, new)
+                markedMolecule = markedMolecule.replaceFirst(old, marker)
+                yield(newMarkedMolecule.replace(marker, old))
             }
-        }.awaitAll().flatten().toSet()
+        }
     }
 }
