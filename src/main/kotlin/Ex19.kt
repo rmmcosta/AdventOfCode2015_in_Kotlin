@@ -46,13 +46,11 @@ fun ex19StepsToFabricateMoleculePrevious(moleculesDescription: String): Int {
                         else {
                             val newPartialFiles = parseFileAndCreateNewOnes(
                                 file,
-                                molecule,
                                 replacements,
-                                fileBaseName
                             )
                             newPartialFiles.forEach { file ->
                                 async {
-                                    val currentFoundAndStep = moleculeFoundInFile(file, molecule)
+                                    val currentFoundAndStep = electronFoundInFile(file)
                                     if (!foundAndStep.first && currentFoundAndStep.first) {
                                         foundAndStep = currentFoundAndStep
                                         found = true
@@ -90,9 +88,7 @@ fun ex19StepsToFabricateMoleculePrevious(moleculesDescription: String): Int {
 
 private suspend fun parseFileAndCreateNewOnes(
     fileNameToRead: String,
-    targetMolecule: String,
     replacements: List<Pair<String, String>>,
-    fileBaseName: String
 ): List<String> {
     val fileRead = File(fileNameToRead)
     val newFiles = mutableListOf<String>()
@@ -128,7 +124,7 @@ private suspend fun parseFileAndCreateNewOnes(
                 } catch (_: Exception) {
                     null
                 }
-                if (line != null && isSimilarEnough(line, targetMolecule)) {
+                if (line != null) {
                     previousMolecules.add(line)
                 }
                 lines++
@@ -142,8 +138,6 @@ private suspend fun parseFileAndCreateNewOnes(
                     fileWriteName,
                     steps,
                     replacements,
-                    targetMolecule,
-                    fileBaseName
                 )
                 newFiles.add(fileWriteName)
                 batchNumber++
@@ -173,8 +167,6 @@ private suspend fun createFileAndStoreNewMolecules(
     fileWriteName: String,
     steps: Int,
     replacements: List<Pair<String, String>>,
-    targetMolecule: String,
-    fileBaseName: String
 ) {
     val fileWrite = File(fileWriteName)
     val writer = BufferedWriter(withContext(Dispatchers.IO) {
@@ -182,39 +174,23 @@ private suspend fun createFileAndStoreNewMolecules(
         fileWriter.write("$steps\n")
         fileWriter
     })
-    run {
-        calibrateAsync(previousMolecules, replacements, targetMolecule, fileBaseName)
-            .forEach { newMolecule ->
-                writer.appendLine(newMolecule)
-            }
-    }
+    calibrateAsync(previousMolecules, replacements)
+        .forEach { newMolecule ->
+            writer.appendLine(newMolecule)
+        }
     withContext(Dispatchers.IO) {
         writer.close()
     }
 }
 
-private suspend fun moleculeFoundInAnyFile(fileBaseName: String, molecule: String): Pair<Boolean, Int> {
-    val resultPerFile = coroutineScope {
-        File(fileBaseName).walk().first().list()?.map { file ->
-            async {
-                moleculeFoundInFile(fileBaseName + file, molecule)
-            }
-        }
-    }?.awaitAll()
-    return if (resultPerFile != null && resultPerFile.any { it.first }) {
-        val step = resultPerFile.filter { it.first }.minOf { it.second }
-        true to step
-    } else false to -1
-}
-
-private fun moleculeFoundInFile(fileName: String, molecule: String): Pair<Boolean, Int> {
+private fun electronFoundInFile(fileName: String): Pair<Boolean, Int> {
     val file = File(fileName)
     var step: Int? = null
     file.useLines { lines ->
         lines.forEach { line ->
             if (step == null && line.toIntOrNull() != null)
                 step = line.toInt()
-            if (molecule == line)
+            if (line == "e")
                 return true to step!!
         }
     }
@@ -226,43 +202,21 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     val molecule = lines.last()
     return molecule to (lines - molecule).map { line ->
         val parts = line.split("=>")
-        parts[0].trim() to parts[1].trim()
+        parts[1].trim() to parts[0].trim()
     }
 }
 
 private suspend fun calibrateAsync(
     originalMolecules: Set<String>,
     replacements: List<Pair<String, String>>,
-    targetMolecule: String,
-    fileBaseName: String
 ): Set<String> = coroutineScope {
     val newMolecules = originalMolecules.map {
         async {
-            val tempMolecules = calibrateAsync(it, replacements)
-            val similarOnes =
-                tempMolecules.filter { tempMolecule -> isSimilarEnough(tempMolecule, targetMolecule) }.toSet()
-            val notFound = similarOnes.filter { similarMolecule ->
-                !moleculeFoundInAnyFile(fileBaseName, similarMolecule).first
-            }
-            notFound
+            calibrateAsync(it, replacements)
         }
     }
     newMolecules
 }.awaitAll().flatten().toSet()
-
-private fun isSimilarEnough(potentialMolecule: String, targetMolecule: String): Boolean =
-    when {
-        potentialMolecule.length < 5 -> true
-        potentialMolecule.length in 5..10 -> potentialMolecule.substring(
-            0,
-            2
-        ) == targetMolecule.substring(0, 2)
-
-        else -> potentialMolecule.substring(
-            0,
-            potentialMolecule.length - potentialMolecule.length * 4 / 5
-        ) == targetMolecule.substring(0, potentialMolecule.length - potentialMolecule.length * 4 / 5)
-    }
 
 private suspend fun calibrateAsync(
     originalMolecule: String,
