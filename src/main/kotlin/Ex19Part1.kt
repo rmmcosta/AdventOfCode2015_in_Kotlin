@@ -3,42 +3,13 @@ package org.example
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlin.random.Random
-import kotlin.time.Duration.Companion.milliseconds
 
 fun ex19CalculateMolecules(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
     val possibleMolecules = runBlocking { calibrate(molecule, replacements) }
     println("There are ${possibleMolecules.size} possible molecules.")
     return possibleMolecules.size
-}
-
-fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
-    val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
-    var steps = 0
-    var newMolecules = setOf("e")
-    while (molecule !in newMolecules) {
-        runBlocking {
-            newMolecules = getNewMoleculesAsync(newMolecules, replacements)
-            steps++
-            println("current step: $steps")
-        }
-    }
-    println("It took $steps steps to get the final molecule")
-    return steps
-}
-
-private suspend fun getNewMoleculesAsync(
-    newMolecules: Set<String>,
-    replacements: List<Pair<String, String>>
-): Set<String> = coroutineScope {
-    newMolecules.map { currentMolecule ->
-        async {
-            calibrate(currentMolecule, replacements)
-        }
-    }.awaitAll().flatten().toSet()
 }
 
 private fun parseMoleculesDescription(moleculesDescription: String): Pair<String, List<Pair<String, String>>> {
