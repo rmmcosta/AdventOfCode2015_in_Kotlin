@@ -1,24 +1,15 @@
 package org.example
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
+import kotlinx.coroutines.*
+import java.io.*
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectory
 import kotlin.io.path.exists
 import kotlin.time.Clock
 
-const val FILES_DIR = "/Users/"
+const val FILES_DIR = "/users/ricardocosta/temp"
 
-fun ex19StepsToFabricateMoleculePrevious(moleculesDescription: String): Int {
+fun ex19StepsToFabricateMoleculeWithFiles(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
     var foundAndStep = false to 0
     val guid = Clock.System.now().epochSeconds
@@ -29,7 +20,7 @@ fun ex19StepsToFabricateMoleculePrevious(moleculesDescription: String): Int {
     val fileNameToRead = "${fileBaseName}0"
     //the first time no file exists, so we need to write the first molecule first
     //the first line is the step
-    File(fileNameToRead).writeText("0\ne")
+    File(fileNameToRead).writeText("0\n$molecule")
 
     val filesQueue = mutableListOf(fileNameToRead)
 
@@ -114,7 +105,7 @@ private suspend fun parseFileAndCreateNewOnes(
 
         while (line != null) {
             val previousMolecules = mutableSetOf(line)
-            val batchSize = 500
+            val batchSize = 10000
             var lines = 1
             while (lines <= batchSize && line != null) {
                 line = try {
@@ -174,9 +165,14 @@ private suspend fun createFileAndStoreNewMolecules(
         fileWriter.write("$steps\n")
         fileWriter
     })
+    val tokens = replacements.map { it.first }.toSet()
     calibrateAsync(previousMolecules, replacements)
-        .forEach { newMolecule ->
-            writer.appendLine(newMolecule)
+        .forEach { newReplacedMolecule ->
+            if (
+                newReplacedMolecule == "e"
+                || newReplacedMolecule in tokens
+                || (newReplacedMolecule.length > 1 && !newReplacedMolecule.contains("e"))
+            ) writer.appendLine(newReplacedMolecule)
         }
     withContext(Dispatchers.IO) {
         writer.close()
@@ -218,25 +214,22 @@ private suspend fun calibrateAsync(
     newMolecules
 }.awaitAll().flatten().toSet()
 
-private suspend fun calibrateAsync(
-    originalMolecule: String,
-    replacements: List<Pair<String, String>>
-): Set<String> {
+private suspend fun calibrateAsync(originalMolecule: String, replacements: List<Pair<String, String>>): Set<String> {
     //the marked molecule will have a marker for the already replaced parts
     val marker = "-1"
     return coroutineScope {
-        val replacedMolecules = replacements.map { (old, new) ->
+        replacements.map { (old, new) ->
             async {
-                val newMolecules = mutableListOf<String>()
+                val currentReplacedMolecules = mutableListOf<String>()
                 var markedMolecule = originalMolecule
                 while (markedMolecule.contains(old)) {
-                    val newMarkedMolecule = markedMolecule.replaceFirst(old, new)
-                    newMolecules.add(newMarkedMolecule.replace(marker, old))
+                    val newMolecule = markedMolecule.replaceFirst(old, new)
+                    val newReplacedMolecule = newMolecule.replace(marker, old)
+                    currentReplacedMolecules.add(newReplacedMolecule)
                     markedMolecule = markedMolecule.replaceFirst(old, marker)
                 }
-                newMolecules.toSet()
+                currentReplacedMolecules.toSet()
             }
-        }.awaitAll().filter { it.isNotEmpty() }
-        replacedMolecules.flatten().toSet()
+        }.awaitAll().flatten().toSet()
     }
 }

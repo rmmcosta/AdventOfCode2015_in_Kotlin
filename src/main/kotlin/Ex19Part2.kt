@@ -1,35 +1,16 @@
 package org.example
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
-
 fun ex19StepsToFabricateMolecule(moleculesDescription: String): Int {
     val (molecule, replacements) = parseMoleculesDescription(moleculesDescription)
-    var steps = 0
-    var newMolecules = setOf(molecule)
-    while ("e" !in newMolecules) {
-        runBlocking {
-            newMolecules = getNewMoleculesAsync(newMolecules, replacements)
-            if(newMolecules.isEmpty()) throw RuntimeException("Dead end")
-            steps++
-            println("current step: $steps")
-        }
-    }
-    println("It took $steps steps to get the final molecule")
-    return steps
-}
 
-private suspend fun getNewMoleculesAsync(
-    newMolecules: Set<String>,
-    replacements: List<Pair<String, String>>
-): Set<String> = coroutineScope {
-    newMolecules.map { currentMolecule ->
-        async {
-            calibrate(currentMolecule, replacements)
-        }
-    }.awaitAll().flatten().toSet()
+    try {
+        val steps = calculateSteps(molecule, replacements.sortedByDescending { it.first.length })
+        println("It took $steps steps to get the final molecule")
+        return steps ?: throw RuntimeException("Molecule not found")
+    } catch (exception: Exception) {
+        println("An unexpected error occurred: ${exception.message}")
+    }
+    return 0
 }
 
 private fun parseMoleculesDescription(moleculesDescription: String): Pair<String, List<Pair<String, String>>> {
@@ -41,27 +22,44 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     }
 }
 
-private suspend fun calibrate(originalMolecule: String, replacements: List<Pair<String, String>>): Set<String> {
-    //the marked molecule will have a marker for the already replaced parts
-    val marker = "-1"
-    val tokens = replacements.map { it.first }.toSet()
-    return coroutineScope {
-        replacements.map { (old, new) ->
-            async {
-                val currentReplacedMolecules = mutableListOf<String>()
-                var markedMolecule = originalMolecule
-                while (markedMolecule.contains(old)) {
-                    val newMolecule = markedMolecule.replaceFirst(old, new)
-                    val newReplacedMolecule = newMolecule.replace(marker, old)
-                    if (
-                        newReplacedMolecule == "e"
-                        || newReplacedMolecule in tokens
-                        || (newReplacedMolecule.length > 1 && !newReplacedMolecule.contains("e"))
-                    ) currentReplacedMolecules.add(newReplacedMolecule)
-                    markedMolecule = markedMolecule.replaceFirst(old, marker)
-                }
-                currentReplacedMolecules.toSet()
-            }
-        }.awaitAll().flatten().toSet()
+private fun calculateSteps(initialMolecule: String, replacements: List<Pair<String, String>>): Int? {
+    val badMolecules = mutableSetOf<String>()
+
+    fun search(molecule: String, steps: Int): Int? {
+        //println("bad molecules: ${badMolecules.size}")
+        println("$steps -> $molecule")
+        if (molecule == "e")
+            return steps
+
+
+        generateNextBestGuessMolecules(molecule, replacements, badMolecules).forEach { nextMolecule ->
+            val result = search(nextMolecule, steps + 1)
+
+            if (result != null)
+                return result
+        }
+
+        badMolecules.add(molecule)
+        return null
     }
+
+    return search(initialMolecule, 0)
 }
+
+private fun generateNextBestGuessMolecules(
+    originalMolecule: String,
+    replacements: List<Pair<String, String>>,
+    badMolecules: Set<String>
+): Set<String> =
+    buildSet {
+        replacements.forEach { (old, new) ->
+            var lastIndex = originalMolecule.indexOf(old)
+            while (lastIndex > -1) {
+                val newCandidate =
+                    originalMolecule.substring(0, lastIndex) + new + originalMolecule.substring(lastIndex + old.length)
+                if (newCandidate !in badMolecules && newCandidate != originalMolecule)
+                    add(newCandidate)
+                lastIndex = originalMolecule.indexOf(old, lastIndex + 1)
+            }
+        }
+    }
