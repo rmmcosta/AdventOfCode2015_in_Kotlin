@@ -24,7 +24,7 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
 
 private fun calculateSteps(initialMolecule: String, replacements: List<Pair<String, String>>): Int? {
     var maxStep = 0
-    var shuffledReplacements = replacements.sortedByDescending { it.second.length }
+    var shuffledReplacements = replacements.sortedByDescending { it.first.length }
     var tries = 0
 
     fun search(molecule: String, steps: Int): Int? {
