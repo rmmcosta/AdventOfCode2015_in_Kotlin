@@ -1,4 +1,3 @@
-import org.example.ex19StepsToFabricateMolecule
 import org.example.ex19StepsToFabricateMoleculeBFS
 import org.example.readTextFromResource
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -1,10 +1,10 @@
-import org.example.ex19StepsToFabricateMolecule
+import org.example.ex19StepsToFabricateMoleculeDFS
 import org.example.readTextFromResource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
-class Ex19Part2Test {
+class Ex19Part2DFSTest {
     @ParameterizedTest(name = "For this description '{0}' there are {1} possible molecules")
     @CsvSource(
         "ex19_test_description1, 3",
@@ -15,6 +15,6 @@ class Ex19Part2Test {
         steps: Int
     ) {
         val description = readTextFromResource(testFile)
-        assertEquals(steps, ex19StepsToFabricateMolecule(description))
+        assertEquals(steps, ex19StepsToFabricateMoleculeDFS(description))
     }
 }
