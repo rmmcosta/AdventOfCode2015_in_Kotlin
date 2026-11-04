@@ -22,17 +22,23 @@ private fun parseMoleculesDescription(moleculesDescription: String): Pair<String
     }
 }
 
+val badMolecules = mutableSetOf<String>()
+
 private fun calculateSteps(initialMolecule: String, replacements: List<Pair<String, String>>): Int? {
-    val badMolecules = mutableSetOf<String>()
+    var maxStep = 0
 
     fun search(molecule: String, steps: Int): Int? {
         //println("bad molecules: ${badMolecules.size}")
-        println("$steps -> $molecule")
+        //println("$steps -> $molecule")
+        if (steps > maxStep) {
+            maxStep = steps
+            println("The max step is now $maxStep")
+        }
         if (molecule == "e")
             return steps
 
 
-        generateNextBestGuessMolecules(molecule, replacements, badMolecules).forEach { nextMolecule ->
+        generateNextBestGuessMolecules(molecule, replacements).forEach { nextMolecule ->
             val result = search(nextMolecule, steps + 1)
 
             if (result != null)
@@ -49,16 +55,15 @@ private fun calculateSteps(initialMolecule: String, replacements: List<Pair<Stri
 private fun generateNextBestGuessMolecules(
     originalMolecule: String,
     replacements: List<Pair<String, String>>,
-    badMolecules: Set<String>
-): Set<String> =
-    buildSet {
+): Sequence<String> =
+    sequence {
         replacements.forEach { (old, new) ->
             var lastIndex = originalMolecule.indexOf(old)
             while (lastIndex > -1) {
                 val newCandidate =
                     originalMolecule.substring(0, lastIndex) + new + originalMolecule.substring(lastIndex + old.length)
                 if (newCandidate !in badMolecules && newCandidate != originalMolecule)
-                    add(newCandidate)
+                    yield(newCandidate)
                 lastIndex = originalMolecule.indexOf(old, lastIndex + 1)
             }
         }
