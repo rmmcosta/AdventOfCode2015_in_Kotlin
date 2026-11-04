@@ -94,5 +94,7 @@ fun main() {
     //ex18CalculateLightsOn(readTextFromResource("ex18_lights"), 100, listOf(0 to 0, 99 to 0, 0 to 99, 99 to 9))
 
     //ex19CalculateMolecules(readTextFromResource("ex19_description"))
-    ex19StepsToFabricateMolecule(readTextFromResource("ex19_description"))
+    //ex19StepsToFabricateMolecule(readTextFromResource("ex19_description"))
+    //ex19StepsToFabricateMoleculeWithTokens(readTextFromResource("ex19_description"))
+    ex19StepsToFabricateMoleculeDFS(readTextFromResource("ex19_description"))
 }
