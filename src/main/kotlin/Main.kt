@@ -96,5 +96,7 @@ fun main() {
     //ex19CalculateMolecules(readTextFromResource("ex19_description"))
     //ex19StepsToFabricateMolecule(readTextFromResource("ex19_description"))
     //ex19StepsToFabricateMoleculeWithTokens(readTextFromResource("ex19_description"))
-    ex19StepsToFabricateMoleculeDFS(readTextFromResource("ex19_description"))
+    //ex19StepsToFabricateMoleculeDFS(readTextFromResource("ex19_description"))
+
+    ex20GetHouseNumberByPresentsReceived(36_000_000)
 }
