@@ -1,6 +1,7 @@
 package org.example
 
 import kotlinx.coroutines.*
+import java.lang.foreign.ValueLayout
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 
@@ -110,21 +111,32 @@ private fun calculatePresentsByHouse(initialHouse: Int): Int {
     return presents
 }
 
-fun ex20GetHouseNumberByPresentsReceived2(presentsReceived: Int): Int {
+fun ex20GetHouseNumberByPresentsReceivedPart2(presentsReceived: Int): Int {
     var currentHouse = 0
+    var countElfsHouses: Map<Int, Int> = mapOf()
     do {
         println("current house: $currentHouse")
         currentHouse++
-        val currentPresents = calculatePresentsByHouse(currentHouse)
+        val result = calculatePresentsByHousePart2(currentHouse, countElfsHouses)
+        val currentPresents = result.first
+        countElfsHouses = result.second
         println("current presents: $currentPresents")
+        println("count elfs houses = ${countElfsHouses.size}")
     } while (currentPresents < presentsReceived)
     println("The first house with $presentsReceived is house number $currentHouse")
     return currentHouse
 }
 
-private fun calculatePresentsByHouse2(currentHouse: Int): Int = (1..currentHouse).fold(0) { acc, elf ->
-    if (currentHouse % elf == 0)
-        acc + elf * 10
-    else
-        acc
+private fun calculatePresentsByHousePart2(currentHouse: Int, countElfsHouses: Map<Int, Int>): Pair<Int, Map<Int, Int>> {
+    val updatedCountElfsHouses = countElfsHouses.toMutableMap()
+    val result = (1..currentHouse).fold(0) { acc, elf ->
+        if (!countElfsHouses.containsKey(elf))
+            updatedCountElfsHouses[elf] = 0
+        if (currentHouse % elf == 0 && updatedCountElfsHouses[elf]!! < 50) {
+            updatedCountElfsHouses[elf] = updatedCountElfsHouses[elf]!! + 1
+            acc + elf * 11
+        } else
+            acc
+    }
+    return result to updatedCountElfsHouses
 }
