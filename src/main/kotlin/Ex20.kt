@@ -85,7 +85,7 @@ private suspend fun divideInBatches(presentsReceived: Int): Int =
 
 private fun calculateBatchSize(presentsReceived: Int): Int {
     val howManyDigits = presentsReceived.toString().length
-    val batchSize = (0 until howManyDigits / 2).fold("1") { acc, _ -> acc + "0" }.toInt()
+    val batchSize = (0 until howManyDigits).fold("1") { acc, _ -> acc + "0" }.toInt()
     return max(batchSize, 1)
 }
 

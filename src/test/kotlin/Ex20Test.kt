@@ -10,11 +10,11 @@ class Ex20Test {
         "10, 1",
         "70, 4",
         "30, 2",
-        "60, 5",
+        "60, 4",
         "120, 6",
-        "80, 7",
+        "80, 6",
         "150, 8",
-        "130, 9"
+        "130, 8"
     )
     fun `given x elfs and y presents, when requesting the house which got the y presents, then it answers correctly`(
         presents: Int,
