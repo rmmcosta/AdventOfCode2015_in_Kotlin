@@ -113,30 +113,23 @@ private fun calculatePresentsByHouse(initialHouse: Int): Int {
 
 fun ex20GetHouseNumberByPresentsReceivedPart2(presentsReceived: Int): Int {
     var currentHouse = 0
-    var countElfsHouses: Map<Int, Int> = mapOf()
     do {
         println("current house: $currentHouse")
         currentHouse++
-        val result = calculatePresentsByHousePart2(currentHouse, countElfsHouses)
-        val currentPresents = result.first
-        countElfsHouses = result.second
+        val currentPresents = calculatePresentsByHousePart2(currentHouse)
         println("current presents: $currentPresents")
-        println("count elfs houses = ${countElfsHouses.size}")
     } while (currentPresents < presentsReceived)
     println("The first house with $presentsReceived is house number $currentHouse")
     return currentHouse
 }
 
-private fun calculatePresentsByHousePart2(currentHouse: Int, countElfsHouses: Map<Int, Int>): Pair<Int, Map<Int, Int>> {
-    val updatedCountElfsHouses = countElfsHouses.toMutableMap()
+private fun calculatePresentsByHousePart2(currentHouse: Int): Int {
     val result = (1..currentHouse).fold(0) { acc, elf ->
-        if (!countElfsHouses.containsKey(elf))
-            updatedCountElfsHouses[elf] = 0
-        if (currentHouse % elf == 0 && updatedCountElfsHouses[elf]!! < 50) {
-            updatedCountElfsHouses[elf] = updatedCountElfsHouses[elf]!! + 1
+        val housesVisited = currentHouse / elf
+        if (currentHouse % elf == 0 && housesVisited < 50)
             acc + elf * 11
-        } else
+        else
             acc
     }
-    return result to updatedCountElfsHouses
+    return result
 }
