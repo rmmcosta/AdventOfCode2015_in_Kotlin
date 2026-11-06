@@ -1,5 +1,9 @@
 package org.example
 
+import kotlinx.coroutines.*
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.max
+
 /*
 a street with infinite houses numbered sequentially: 1, 2, 3, 4, 5, and so on.
 Each Elf is assigned a number, too, and delivers presents to houses based on that number:
@@ -30,20 +34,78 @@ Your puzzle input is 36000000.
  */
 
 fun ex20GetHouseNumberByPresentsReceived(presentsReceived: Int): Int {
-    var currentHouse = 0
-    do {
-        println("current house: $currentHouse")
-        currentHouse++
-        val currentPresents = calculatePresentsByHouse(currentHouse)
-        println("current presents: $currentPresents")
-    } while (currentPresents != presentsReceived)
-    println("The first house with $presentsReceived is house number $currentHouse")
-    return currentHouse
+    var bestHouse = 0
+    runBlocking {
+        bestHouse = divideInBatches(presentsReceived)
+    }
+    println("The first house with $presentsReceived is house number $bestHouse")
+    return bestHouse
 }
 
-private fun calculatePresentsByHouse(currentHouse: Int): Int = (1..currentHouse).fold(0) { acc, elf ->
-    if (currentHouse % elf == 0)
-        acc + elf * 10
-    else
-        acc
+private suspend fun divideInBatches(presentsReceived: Int): Int =
+    coroutineScope {
+        val batchSize = calculateBatchSize(presentsReceived)
+        require(batchSize > 0)
+
+        val result = CompletableDeferred<Int>()
+
+        val jobs = (1..presentsReceived step batchSize).map { lower ->
+            launch(Dispatchers.Default) {
+                val upper = minOf(
+                    lower.toLong() + batchSize - 1,
+                    presentsReceived.toLong()
+                ).toInt()
+
+                for (house in lower..upper) {
+                    ensureActive()
+
+                    if (calculatePresentsByHouse(house) == presentsReceived) {
+                        result.complete(house)
+                        break
+                    }
+                }
+            }
+        }
+
+        // Prevent waiting forever if no house matches.
+        launch {
+            jobs.joinAll()
+            result.completeExceptionally(
+                NoSuchElementException("No matching house found")
+            )
+        }
+
+        try {
+            result.await()
+        } finally {
+            jobs.forEach { it.cancel() }
+        }
+    }
+
+private fun calculateBatchSize(presentsReceived: Int): Int {
+    val howManyDigits = presentsReceived.toString().length
+    val batchSize = (0 until howManyDigits / 2).fold("1") { acc, _ -> acc + "0" }.toInt()
+    return max(batchSize, 1)
+}
+
+val memoization: ConcurrentHashMap<Int, Int> = ConcurrentHashMap()
+
+private fun calculatePresentsByHouse(initialHouse: Int): Int {
+    tailrec fun calculatePresentsByHouse(currentElf: Int, acc: Int): Int {
+        if (currentElf == 1)
+            return acc + 10
+
+        var newCurrentHouse = currentElf - 1
+        while (initialHouse % newCurrentHouse != 0)
+            newCurrentHouse--
+
+        return calculatePresentsByHouse(newCurrentHouse, acc + currentElf * 10)
+    }
+
+    if (memoization.containsKey(initialHouse))
+        return memoization[initialHouse]!!
+
+    val presents = calculatePresentsByHouse(initialHouse, 0)
+    memoization[initialHouse] = presents
+    return presents
 }
