@@ -59,7 +59,7 @@ private suspend fun divideInBatches(presentsReceived: Int): Int =
                 for (house in lower..upper) {
                     ensureActive()
 
-                    if (calculatePresentsByHouse(house) == presentsReceived) {
+                    if (calculatePresentsByHouse(house) >= presentsReceived) {
                         result.complete(house)
                         break
                     }
@@ -108,4 +108,23 @@ private fun calculatePresentsByHouse(initialHouse: Int): Int {
     val presents = calculatePresentsByHouse(initialHouse, 0)
     memoization[initialHouse] = presents
     return presents
+}
+
+fun ex20GetHouseNumberByPresentsReceived2(presentsReceived: Int): Int {
+    var currentHouse = 0
+    do {
+        println("current house: $currentHouse")
+        currentHouse++
+        val currentPresents = calculatePresentsByHouse(currentHouse)
+        println("current presents: $currentPresents")
+    } while (currentPresents < presentsReceived)
+    println("The first house with $presentsReceived is house number $currentHouse")
+    return currentHouse
+}
+
+private fun calculatePresentsByHouse2(currentHouse: Int): Int = (1..currentHouse).fold(0) { acc, elf ->
+    if (currentHouse % elf == 0)
+        acc + elf * 10
+    else
+        acc
 }
